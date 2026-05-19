@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "E:\\PHUC\\Programming_Networking\\SodokuBattleOnline\\Shared\\Shared.csproj": {}
+    "E:\\PHUC\\Programming_Networking\\SudokuBattleOnline\\Shared\\Shared.csproj": {}
   },
   "projects": {
-    "E:\\PHUC\\Programming_Networking\\SodokuBattleOnline\\Shared\\Shared.csproj": {
+    "E:\\PHUC\\Programming_Networking\\SudokuBattleOnline\\Shared\\Shared.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\PHUC\\Programming_Networking\\SodokuBattleOnline\\Shared\\Shared.csproj",
+        "projectUniqueName": "E:\\PHUC\\Programming_Networking\\SudokuBattleOnline\\Shared\\Shared.csproj",
         "projectName": "Shared",
-        "projectPath": "E:\\PHUC\\Programming_Networking\\SodokuBattleOnline\\Shared\\Shared.csproj",
+        "projectPath": "E:\\PHUC\\Programming_Networking\\SudokuBattleOnline\\Shared\\Shared.csproj",
         "packagesPath": "C:\\Users\\PHAM NGOC DUC\\.nuget\\packages\\",
-        "outputPath": "E:\\PHUC\\Programming_Networking\\SodokuBattleOnline\\Shared\\obj\\",
+        "outputPath": "E:\\PHUC\\Programming_Networking\\SudokuBattleOnline\\Shared\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
