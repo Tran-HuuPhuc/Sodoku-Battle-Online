@@ -4,6 +4,7 @@ SudokuBattleOnline/
 ├── Server/
 ├── Shared/
 ├── Documents/
-│   └── TaskAssignment.docx
+│   └── Assignment_Phrase1.docx
+|   └── Assignment_Phrase1.docx
 └── README.md
 
