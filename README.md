@@ -1,10 +1,28 @@
 ```text
 SudokuBattleOnline/
+│
 ├── Client/
+│   ├── Forms/
+│   ├── Network/
+│   ├── Game/
+│   ├── AI/
+│   ├── Services/
+│   └── Assets/
+│
 ├── Server/
+│   ├── Network/
+│   ├── Managers/
+│   ├── Matchmaking/
+│   ├── Database/
+│   └── Services/
+│
 ├── Shared/
-├── Documents/
-│   └── Assignment_Phrase1.docx
-|   └── Assignment_Phrase2.docx
+│   ├── Models/
+│   ├── Packets/
+│   ├── Enums/
+│   └── Utils/
+│
+├── DatabaseScripts/
+│
+└── Documents/
 └── README.md
-
