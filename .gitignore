@@ -21,3 +21,7 @@ Generated\ Files/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Chống commit nhầm file markdown tài liệu lặt vặt
+*.md
+!README.md
