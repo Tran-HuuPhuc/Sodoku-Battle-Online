@@ -1,4 +1,13 @@
 using System;
+<<<<<<< HEAD
+using System.Windows.Forms;
+using SudokuBattleOnline.Forms;
+
+namespace SudokuBattleOnline
+{
+    internal static class Program
+    {
+=======
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Client.Network; // Đảm bảo import đúng namespace của class ClientConnection
@@ -13,11 +22,14 @@ namespace Client
         /// <summary>
         ///  The main entry point for the application.
         /// </summary>
+>>>>>>> upstream/main
         [STAThread]
         static async Task Main() // Chuyển void thành async Task để chạy bất đồng bộ
         {
             ApplicationConfiguration.Initialize();
 
+<<<<<<< HEAD
+=======
             // 1. Khởi tạo đối tượng kết nối mạng
             NetworkClient = new ClientConnection();
 
@@ -37,6 +49,7 @@ namespace Client
             await NetworkClient.SendMessageAsync("Hello Server! Tôi là Client đã kết nối thành công từ WinForm.");
 
             // 4. Bật giao diện LoginForm lên bình thường cho người chơi thao tác
+>>>>>>> upstream/main
             Application.Run(new LoginForm());
         }
     }
