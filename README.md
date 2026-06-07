@@ -37,6 +37,8 @@ SudokuBattleOnline
 │   │   │   └── RoomService.cs
 │   │   │
 │   │   ├── Game
+│   │   │   ├── Board.cs
+│   │   │   ├── Cell.cs
 │   │   │   ├── SudokuGenerator.cs
 │   │   │   ├── SudokuValidator.cs
 │   │   │   ├── TimerManager.cs
