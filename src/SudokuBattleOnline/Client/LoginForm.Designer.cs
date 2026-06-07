@@ -1,4 +1,4 @@
-namespace Client
+namespace SudokuBattleOnline.Forms
 {
     partial class LoginForm
     {

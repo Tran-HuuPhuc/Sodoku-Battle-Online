@@ -1,8 +1,12 @@
+
+using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace SudokuBattle.Server.Network
@@ -10,17 +14,14 @@ namespace SudokuBattle.Server.Network
     public class TcpServer
     {
         private TcpListener _listener;
-        private readonly int _port = 8888; // Định nghĩa cổng kết nối hệ thống
+        private readonly int _port = 8888;
         private bool _isRunning;
-
-        // Danh sách lưu trữ tập trung các Client đang trực tuyến
         private readonly List<TcpClient> _connectedClients = new List<TcpClient>();
 
         public async Task StartAsync()
         {
             try
             {
-                // 1. Khởi tạo và kích hoạt lắng nghe tại cổng 8888
                 _listener = new TcpListener(IPAddress.Any, _port);
                 _listener.Start();
                 _isRunning = true;
@@ -28,20 +29,16 @@ namespace SudokuBattle.Server.Network
                 Console.WriteLine($"[SERVER] Sudoku TCP Server đã mở thành công tại cổng {_port}...");
                 Console.WriteLine("[SERVER] Đang sẵn sàng đón nhận các client kết nối vào...\n---");
 
-                // 2. Vòng lặp vô tận dùng async/await để liên tục đón client mới mà không gây nghẽn luồng
                 while (_isRunning)
                 {
-                    // Đứng đợi kết nối bất đồng bộ từ client
                     TcpClient client = await _listener.AcceptTcpClientAsync();
 
-                    // Sử dụng lock để tránh xung đột tài nguyên mạng khi thêm client vào danh sách
                     lock (_connectedClients)
                     {
                         _connectedClients.Add(client);
                     }
                     Console.WriteLine($"[KẾT NỐI] Có người chơi mới tham gia! Tổng số trực tuyến: {_connectedClients.Count}");
 
-                    // 3. Đẩy Client này vào một luồng xử lý riêng biệt để quản lý việc nhận dữ liệu
                     _ = Task.Run(() => HandleClientAsync(client));
                 }
             }
@@ -51,42 +48,47 @@ namespace SudokuBattle.Server.Network
             }
         }
 
-        // Hàm xử lý truyền nhận dữ liệu độc lập cho từng phiên kết nối của client
         private async Task HandleClientAsync(TcpClient client)
         {
-            // Lấy luồng dữ liệu mạng để đọc/ghi
             using (NetworkStream stream = client.GetStream())
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
             {
-                byte[] buffer = new byte[4096]; // Cấu hình kích thước bộ đệm < 4KB theo yêu cầu phi chức năng
-                int bytesRead;
-
                 try
                 {
-                    // Vòng lặp liên tục lắng nghe thông điệp thô gửi lên từ client
-                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                    string jsonLine;
+                    while ((jsonLine = await reader.ReadLineAsync()) != null)
                     {
-                        // Giải mã mảng byte thành chuỗi ký tự UTF-8
-                        string receivedData = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        Console.WriteLine($"[DỮ LIỆU] Nhận từ Client: {receivedData}");
+                        if (string.IsNullOrWhiteSpace(jsonLine)) continue;
 
-                        // Thử nghiệm cơ chế Echo: Phản hồi lại thông điệp vừa nhận để Client kiểm tra kết nối
-                        byte[] responseData = Encoding.UTF8.GetBytes($"[SERVER ECHO]: {receivedData}");
-                        await stream.WriteAsync(responseData, 0, responseData.Length);
+                        Console.WriteLine($"[SERVER NHẬN JSON]: {jsonLine}");
+
+                        var basePacket = JsonSerializer.Deserialize<BasePacket>(jsonLine);
+
+                        switch (basePacket?.PacketType)
+                        {
+                            case "LOGIN":
+                                var loginData = JsonSerializer.Deserialize<LoginPacket>(jsonLine);
+                                Console.WriteLine($"[LOGIC] Người chơi '{loginData.Username}' yêu cầu Đăng Nhập!");
+                                break;
+
+                            default:
+                                Console.WriteLine("[CẢNH BÁO] Gói tin không xác định.");
+                                break;
+                        }
                     }
                 }
                 catch (Exception)
                 {
-                    // Bắt các lỗi ngắt kết nối vật lý hoặc crash app phía Client
+                    // Xử lý ngắt kết nối
                 }
                 finally
                 {
-                    // 4. Dọn dẹp bộ nhớ và xóa client khỏi danh sách quản lý khi ngắt kết nối
                     lock (_connectedClients)
                     {
                         _connectedClients.Remove(client);
                     }
                     client.Close();
-                    Console.WriteLine($"[NGẮT KẾT NỐI] Một người chơi đã rời đi. Còn lại: {_connectedClients.Count}");
+                    Console.WriteLine($"[NGẮT KẾT NỐI] Một client đã rời đi. Còn lại: {_connectedClients.Count}");
                 }
             }
         }
