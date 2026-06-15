@@ -8,5 +8,10 @@ namespace Server.Services
 {
     internal class AuthService
     {
+        public bool Login(string username, string password)
+        {
+            return username == "admin"
+                && password == "123456";
+        }
     }
 }

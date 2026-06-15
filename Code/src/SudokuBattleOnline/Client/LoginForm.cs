@@ -65,5 +65,10 @@ namespace SudokuBattleOnline.Forms
             Controls.Add(btnLogin);
             Controls.Add(btnRegister);
         }
+
+        private void LoginForm_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
