@@ -1,38 +1,48 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Server.Database;
+using Server.Models;
+using Server.Services;
+using Shared.Enums;
 using SudokuBattleOnline.Shared.Packets;
 
 namespace SudokuBattle.Server.Network
 {
     /// <summary>
     /// Xử lý logic nghiệp vụ cho từng loại gói tin nhận được từ client.
-    /// Mỗi phương thức Handle*Async tương ứng với một PacketType cụ thể.
-    /// Tầng này nằm giữa PacketRouter (định tuyến) và Service (truy xuất dữ liệu).
+    /// Mọi dữ liệu tài khoản, hồ sơ, lịch sử và bảng xếp hạng đều xử lý qua SQLite phía Server.
     /// </summary>
     public class PacketHandler
     {
         private readonly SessionManager _sessionManager;
+        private readonly DatabaseContext _databaseContext;
+        private readonly AuthService _authService;
+        private readonly UserRepository _userRepository;
+        private readonly MatchRepository _matchRepository;
+        private readonly RankingRepository _rankingRepository;
 
         public PacketHandler(SessionManager sessionManager)
         {
             _sessionManager = sessionManager;
+            _databaseContext = new DatabaseContext("database/sudoku.db");
+            _databaseContext.Initialize();
+
+            _authService = new AuthService(_databaseContext);
+            _userRepository = new UserRepository(_databaseContext);
+            _matchRepository = new MatchRepository(_databaseContext);
+            _rankingRepository = new RankingRepository(_databaseContext);
         }
 
         // ═══════════════════════════════════════════════
         //  XÁC THỰC (Authentication)
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Xử lý yêu cầu đăng nhập từ client.
-        /// - Kiểm tra username/password.
-        /// - Ngăn đăng nhập trùng tài khoản đang online.
-        /// - Gửi phản hồi thành công/thất bại.
-        /// </summary>
         public async Task HandleLoginAsync(ClientSession session, LoginPacket packet)
         {
             Console.WriteLine($"[LOGIN] {session} yêu cầu đăng nhập: Username='{packet.Username}'");
 
-            // Kiểm tra dữ liệu đầu vào
             if (string.IsNullOrWhiteSpace(packet.Username) || string.IsNullOrWhiteSpace(packet.Password))
             {
                 await session.SendPacketAsync(new LoginPacket
@@ -47,7 +57,6 @@ namespace SudokuBattle.Server.Network
             string username = packet.Username.Trim();
             string password = packet.Password.Trim();
 
-            // Kiểm tra tài khoản đã đang online chưa
             if (_sessionManager.IsUserOnline(username))
             {
                 await session.SendPacketAsync(new LoginPacket
@@ -59,10 +68,7 @@ namespace SudokuBattle.Server.Network
                 return;
             }
 
-            // TODO: Thay thế bằng truy vấn Database thực tế (UserRepository)
-            // Hiện tại dùng tài khoản test cứng để kiểm thử luồng mạng
-            bool isValid = (username == "admin" && password == "123456")
-                        || (username == "test" && password == "test");
+            bool isValid = _authService.Login(username, password, out string loginMessage);
 
             if (isValid)
             {
@@ -74,7 +80,7 @@ namespace SudokuBattle.Server.Network
                     PacketType = "LOGIN_RESULT",
                     Username = username,
                     Success = true,
-                    Message = $"Đăng nhập thành công! Chào mừng {username}."
+                    Message = loginMessage
                 });
                 Console.WriteLine($"[LOGIN] ✓ {session} đăng nhập thành công.");
             }
@@ -84,15 +90,12 @@ namespace SudokuBattle.Server.Network
                 {
                     PacketType = "LOGIN_RESULT",
                     Success = false,
-                    Message = "Sai tên đăng nhập hoặc mật khẩu."
+                    Message = loginMessage
                 });
-                Console.WriteLine($"[LOGIN] ✗ {session} đăng nhập thất bại.");
+                Console.WriteLine($"[LOGIN] ✗ {session} đăng nhập thất bại: {loginMessage}");
             }
         }
 
-        /// <summary>
-        /// Xử lý yêu cầu đăng ký tài khoản mới.
-        /// </summary>
         public async Task HandleRegisterAsync(ClientSession session, RegisterPacket packet)
         {
             Console.WriteLine($"[REGISTER] {session} yêu cầu đăng ký: Username='{packet.Username}'");
@@ -119,32 +122,67 @@ namespace SudokuBattle.Server.Network
                 return;
             }
 
-            // TODO: Lưu vào Database thực tế (UserRepository)
-            // Kiểm tra trùng username, hash password, lưu vào DB
+            bool created = _authService.Register(packet.Username, packet.Password, out string registerMessage);
 
             await session.SendPacketAsync(new RegisterPacket
             {
                 PacketType = "REGISTER_RESULT",
-                Success = true,
-                Message = "Đăng ký tài khoản thành công! Vui lòng đăng nhập."
+                Success = created,
+                Message = registerMessage
             });
-            Console.WriteLine($"[REGISTER] ✓ Đăng ký thành công cho '{packet.Username}'.");
+
+            if (created)
+                Console.WriteLine($"[REGISTER] ✓ Đăng ký thành công cho '{packet.Username}'.");
+            else
+                Console.WriteLine($"[REGISTER] ✗ Đăng ký thất bại cho '{packet.Username}': {registerMessage}");
+        }
+
+        // ═══════════════════════════════════════════════
+        //  HỒ SƠ NGƯỜI CHƠI
+        // ═══════════════════════════════════════════════
+
+        public async Task HandleProfileAsync(ClientSession session, UserProfilePacket packet)
+        {
+            if (!await RequireAuthAsync(session)) return;
+
+            string username = session.Username!;
+            var user = _userRepository.FindByUsername(username);
+
+            if (user == null)
+            {
+                await session.SendPacketAsync(new UserProfilePacket
+                {
+                    PacketType = "PROFILE_RESULT",
+                    Success = false,
+                    Message = "Không tìm thấy hồ sơ người dùng trên Server."
+                });
+                return;
+            }
+
+            await session.SendPacketAsync(new UserProfilePacket
+            {
+                PacketType = "PROFILE_RESULT",
+                Success = true,
+                Message = "Lấy hồ sơ thành công.",
+                Id = user.Id,
+                Username = user.Username,
+                Elo = user.Elo,
+                TotalWins = user.TotalWins,
+                TotalLosses = user.TotalLosses,
+                CreatedAt = user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+            });
         }
 
         // ═══════════════════════════════════════════════
         //  PHÒNG CHƠI (Room Management)
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Xử lý yêu cầu tạo phòng mới.
-        /// </summary>
         public async Task HandleCreateRoomAsync(ClientSession session, CreateRoomPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[ROOM] {session} tạo phòng: '{packet.RoomName}'");
 
-            // TODO: Tạo phòng qua RoomManager, lưu vào danh sách phòng
             await session.SendPacketAsync(new CreateRoomPacket
             {
                 PacketType = "CREATE_ROOM_RESULT",
@@ -154,16 +192,12 @@ namespace SudokuBattle.Server.Network
             });
         }
 
-        /// <summary>
-        /// Xử lý yêu cầu tham gia phòng.
-        /// </summary>
         public async Task HandleJoinRoomAsync(ClientSession session, JoinRoomPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[ROOM] {session} tham gia phòng: {packet.RoomId}");
 
-            // TODO: Tìm phòng qua RoomManager, thêm người chơi
             await session.SendPacketAsync(new JoinRoomPacket
             {
                 PacketType = "JOIN_ROOM_RESULT",
@@ -173,9 +207,6 @@ namespace SudokuBattle.Server.Network
             });
         }
 
-        /// <summary>
-        /// Xử lý yêu cầu rời phòng.
-        /// </summary>
         public async Task HandleLeaveRoomAsync(ClientSession session, LeaveRoomPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
@@ -184,7 +215,6 @@ namespace SudokuBattle.Server.Network
 
             session.CurrentRoomId = null;
 
-            // TODO: Gỡ người chơi khỏi phòng qua RoomManager
             await session.SendPacketAsync(new LeaveRoomPacket
             {
                 PacketType = "LEAVE_ROOM_RESULT",
@@ -198,17 +228,12 @@ namespace SudokuBattle.Server.Network
         //  TRẬN ĐẤU (Matchmaking & Gameplay)
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Xử lý yêu cầu tìm trận.
-        /// </summary>
         public async Task HandleFindMatchAsync(ClientSession session, FindMatchPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[MATCH] {session} yêu cầu tìm trận.");
 
-            // TODO: Đưa vào MatchmakingQueue, khi đủ 2 người -> tạo GameRoom
-            // Khi tìm được, gửi MatchFoundPacket cho cả 2 client
             await session.SendPacketAsync(new FindMatchPacket
             {
                 PacketType = "FIND_MATCH",
@@ -217,56 +242,132 @@ namespace SudokuBattle.Server.Network
             });
         }
 
-        /// <summary>
-        /// Xử lý cập nhật ô Sudoku từ người chơi trong trận đấu.
-        /// </summary>
         public async Task HandleCellUpdateAsync(ClientSession session, CellUpdatePacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[GAME] {session} cập nhật ô [{packet.Row},{packet.Col}] = {packet.Value}");
-
-            // TODO: Validate ô, cập nhật GameRoom, gửi progress cho đối thủ
             await Task.CompletedTask;
+        }
+
+        public async Task HandleSaveMatchResultAsync(ClientSession session, SaveMatchResultPacket packet)
+        {
+            if (!await RequireAuthAsync(session)) return;
+
+            string username = session.Username!;
+            string opponent = string.IsNullOrWhiteSpace(packet.Opponent) ? "Single Player" : packet.Opponent.Trim();
+            string result = string.IsNullOrWhiteSpace(packet.Result) ? "Completed" : packet.Result.Trim();
+
+            if (!Enum.TryParse(packet.Difficulty, true, out Difficulty difficulty))
+                difficulty = Difficulty.Medium;
+
+            bool isWin = result.Equals("Win", StringComparison.OrdinalIgnoreCase);
+            bool isLose = result.Equals("Lose", StringComparison.OrdinalIgnoreCase);
+            int eloDelta = isWin ? 15 : isLose ? -10 : 0;
+
+            var match = new MatchEntity
+            {
+                Player1 = username,
+                Player2 = opponent,
+                Winner = isWin ? username : string.Empty,
+                Difficulty = difficulty,
+                DurationSeconds = packet.TimeSeconds,
+                EloChangeP1 = eloDelta,
+                EloChangeP2 = 0,
+                PlayedAt = DateTime.UtcNow
+            };
+
+            _matchRepository.SaveMatch(match);
+
+            if (isWin)
+                _userRepository.UpdateStats(username, 15, true);
+            else if (isLose)
+                _userRepository.UpdateStats(username, -10, false);
+
+            if (packet.TimeSeconds > 0 && (isWin || result.Equals("Completed", StringComparison.OrdinalIgnoreCase)))
+                _rankingRepository.TryUpdateBestRecord(username, difficulty, packet.TimeSeconds);
+
+            await session.SendPacketAsync(new SaveMatchResultPacket
+            {
+                PacketType = "SAVE_MATCH_RESULT",
+                Success = true,
+                Message = "Server đã lưu kết quả vào SQLite.",
+                Opponent = opponent,
+                Result = result,
+                Difficulty = difficulty.ToString(),
+                Score = packet.Score,
+                TimeSeconds = packet.TimeSeconds
+            });
         }
 
         // ═══════════════════════════════════════════════
         //  CHAT
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Xử lý tin nhắn chat.
-        /// </summary>
         public async Task HandleChatAsync(ClientSession session, ChatPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[CHAT] {session}: {packet.Content}");
-
-            // TODO: Chuyển tiếp tin nhắn tới các thành viên cùng phòng
             await Task.CompletedTask;
         }
 
         // ═══════════════════════════════════════════════
-        //  RANKING (Bảng xếp hạng)
+        //  RANKING + HISTORY
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Xử lý yêu cầu lấy bảng xếp hạng.
-        /// </summary>
         public async Task HandleRankingAsync(ClientSession session, RankingPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
             Console.WriteLine($"[RANKING] {session} yêu cầu bảng xếp hạng.");
 
-            // TODO: Truy vấn Database lấy danh sách ranking
+            List<RankingEntry> rankings = _userRepository.GetTopPlayers(50)
+                .Select((user, index) => new RankingEntry
+                {
+                    Rank = index + 1,
+                    Username = user.Username,
+                    RankPoint = user.Elo,
+                    WinCount = user.TotalWins,
+                    MatchCount = user.TotalWins + user.TotalLosses
+                })
+                .ToList();
+
             await session.SendPacketAsync(new RankingPacket
             {
+                PacketType = "RANKING",
                 Success = true,
                 Message = "Lấy bảng xếp hạng thành công.",
-                Rankings = new System.Collections.Generic.List<RankingEntry>()
-                // Sẽ đổ dữ liệu thực khi có Database
+                Rankings = rankings
+            });
+        }
+
+        public async Task HandleMatchHistoryAsync(ClientSession session, MatchHistoryPacket packet)
+        {
+            if (!await RequireAuthAsync(session)) return;
+
+            string username = session.Username!;
+            var history = _matchRepository.GetMatchHistory(username, 50)
+                .Select(m => new MatchHistoryEntry
+                {
+                    Id = m.Id,
+                    Player1 = m.Player1,
+                    Player2 = m.Player2,
+                    Winner = m.Winner,
+                    Difficulty = m.Difficulty.ToString(),
+                    DurationSeconds = m.DurationSeconds,
+                    EloChangeP1 = m.EloChangeP1,
+                    EloChangeP2 = m.EloChangeP2,
+                    PlayedAt = m.PlayedAt.ToString("yyyy-MM-dd HH:mm:ss")
+                })
+                .ToList();
+
+            await session.SendPacketAsync(new MatchHistoryPacket
+            {
+                PacketType = "MATCH_HISTORY_RESULT",
+                Success = true,
+                Message = "Lấy lịch sử đấu thành công.",
+                History = history
             });
         }
 
@@ -274,24 +375,11 @@ namespace SudokuBattle.Server.Network
         //  HEARTBEAT (Ping/Pong)
         // ═══════════════════════════════════════════════
 
-        /// <summary>
-        /// Phản hồi gói tin Ping từ client bằng Pong.
-        /// Giúp duy trì kết nối và phát hiện client đã mất kết nối.
-        /// </summary>
         public async Task HandlePingAsync(ClientSession session)
         {
             await session.SendPacketAsync(new BasePacket { PacketType = "PONG" });
         }
 
-        // ═══════════════════════════════════════════════
-        //  TIỆN ÍCH NỘI BỘ
-        // ═══════════════════════════════════════════════
-
-        /// <summary>
-        /// Kiểm tra xem session đã đăng nhập chưa.
-        /// Nếu chưa, tự động gửi phản hồi lỗi và trả về false.
-        /// Dùng ở đầu mỗi handler yêu cầu xác thực.
-        /// </summary>
         private async Task<bool> RequireAuthAsync(ClientSession session)
         {
             if (!session.IsAuthenticated)

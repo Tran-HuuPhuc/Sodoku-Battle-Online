@@ -1,3 +1,5 @@
+using SudokuBattleOnline.Client;
+using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -9,6 +11,7 @@ namespace SudokuBattleOnline.Forms
         private Panel board;
         private TextBox[,] cells = new TextBox[9, 9];
         private Random random = new Random();
+        private DateTime startedAt = DateTime.Now;
 
         private string[][,] puzzles =
         {
@@ -75,9 +78,41 @@ namespace SudokuBattleOnline.Forms
             btnCheck.Location = new Point(500, 170);
             btnCheck.Size = new Size(120, 40);
 
-            btnCheck.Click += (s, e) =>
+            btnCheck.Click += async (s, e) =>
             {
-                MessageBox.Show("Kiểm tra hoàn tất!");
+                int timeSeconds = Math.Max(1, (int)(DateTime.Now - startedAt).TotalSeconds);
+                int emptyCells = CountEmptyCells();
+                int score = Math.Max(0, 1000 - timeSeconds * 2 - emptyCells * 10);
+                string result = emptyCells == 0 ? "Win" : "Completed";
+
+                try
+                {
+                    var request = new SaveMatchResultPacket
+                    {
+                        PacketType = "SAVE_MATCH_RESULT",
+                        Opponent = "Single Player",
+                        Result = result,
+                        Difficulty = "Medium",
+                        Score = score,
+                        TimeSeconds = timeSeconds
+                    };
+
+                    SaveMatchResultPacket? response = await AppSession.SendAndWaitAsync<SaveMatchResultPacket>(request, "SAVE_MATCH_RESULT");
+                    if (response == null || !response.Success)
+                    {
+                        MessageBox.Show(response?.Message ?? "Server không trả về kết quả lưu trận.",
+                            "Không thể lưu", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    MessageBox.Show($"Đã lưu lịch sử chơi vào SQLite phía Server.\nKết quả: {result}\nĐiểm: {score}\nThời gian: {timeSeconds} giây",
+                        "Đã lưu", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Không thể lưu lịch sử chơi qua Server: " + ex.Message,
+                        "Lỗi Server", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             };
 
             Button btnSolve = new Button();
@@ -136,6 +171,7 @@ namespace SudokuBattleOnline.Forms
 
         private void LoadRandomPuzzle()
         {
+            startedAt = DateTime.Now;
             int index = random.Next(puzzles.Length);
             string[,] puzzle = puzzles[index];
 
@@ -157,6 +193,22 @@ namespace SudokuBattleOnline.Forms
                     }
                 }
             }
+        }
+
+        private int CountEmptyCells()
+        {
+            int count = 0;
+
+            for (int r = 0; r < 9; r++)
+            {
+                for (int c = 0; c < 9; c++)
+                {
+                    if (string.IsNullOrWhiteSpace(cells[r, c].Text))
+                        count++;
+                }
+            }
+
+            return count;
         }
     }
 }

@@ -56,6 +56,12 @@ namespace SudokuBattle.Server.Network
                             await _handler.HandleRegisterAsync(session, registerPacket);
                         break;
 
+                    case "PROFILE":
+                        var profilePacket = JsonSerializer.Deserialize<UserProfilePacket>(jsonLine);
+                        if (profilePacket != null)
+                            await _handler.HandleProfileAsync(session, profilePacket);
+                        break;
+
                     // ─── Phòng chơi ───
                     case "CREATE_ROOM":
                         var createRoomPacket = JsonSerializer.Deserialize<CreateRoomPacket>(jsonLine);
@@ -88,6 +94,12 @@ namespace SudokuBattle.Server.Network
                             await _handler.HandleCellUpdateAsync(session, cellUpdatePacket);
                         break;
 
+                    case "SAVE_MATCH_RESULT":
+                        var saveMatchPacket = JsonSerializer.Deserialize<SaveMatchResultPacket>(jsonLine);
+                        if (saveMatchPacket != null)
+                            await _handler.HandleSaveMatchResultAsync(session, saveMatchPacket);
+                        break;
+
                     // ─── Chat ───
                     case "CHAT":
                         var chatPacket = JsonSerializer.Deserialize<ChatPacket>(jsonLine);
@@ -100,6 +112,12 @@ namespace SudokuBattle.Server.Network
                         var rankingPacket = JsonSerializer.Deserialize<RankingPacket>(jsonLine);
                         if (rankingPacket != null)
                             await _handler.HandleRankingAsync(session, rankingPacket);
+                        break;
+
+                    case "MATCH_HISTORY":
+                        var historyPacket = JsonSerializer.Deserialize<MatchHistoryPacket>(jsonLine);
+                        if (historyPacket != null)
+                            await _handler.HandleMatchHistoryAsync(session, historyPacket);
                         break;
 
                     // ─── Heartbeat ───
