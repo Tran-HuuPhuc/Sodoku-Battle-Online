@@ -1,140 +1,114 @@
 using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using SudokuBattleOnline.Shared.Packets;
 
 namespace Client.Network
 {
     /// <summary>
-    /// quản lý kết nối tcp client
-    /// cái này để test commit - tên - email
+    /// Quản lý kết nối TCP từ Client tới Server.
+    /// Client gửi/nhận packet JSON, mỗi packet kết thúc bằng một dòng mới.
     /// </summary>
     public class ClientConnection
     {
-        private TcpClient _tcpClient;
-        private NetworkStream _stream;
+        private TcpClient? _tcpClient;
+        private NetworkStream? _stream;
+        private StreamReader? _reader;
+        private StreamWriter? _writer;
+        private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1, 1);
 
-        public event Action<string> OnMessageReceived;
-        public event Action OnDisconnected;
+        public event Action<string>? OnMessageReceived;
+        public event Action? OnDisconnected;
+
+        public bool IsConnected => _tcpClient != null && _tcpClient.Connected && _stream != null;
 
         public async Task ConnectAsync(string ip, int port)
         {
-            int maxThuKetNoi = 5;
-            int ketNoi = 0;
+            if (IsConnected)
+                return;
 
-            while (_tcpClient == null || !_tcpClient.Connected)
+            Disconnect(false);
+
+            _tcpClient = new TcpClient();
+            await _tcpClient.ConnectAsync(ip, port);
+
+            _stream = _tcpClient.GetStream();
+            _reader = new StreamReader(_stream, new UTF8Encoding(false));
+            _writer = new StreamWriter(_stream, new UTF8Encoding(false))
             {
-                try
-                {
-                    ketNoi++;
-                    Console.WriteLine($"Đang kết nối đến Server... (Thử lần {ketNoi}/{maxThuKetNoi})");
+                AutoFlush = true
+            };
 
-                    _tcpClient = new TcpClient();
-                    //Thử kết nối bất đồng bộ sang Server
-                    await _tcpClient.ConnectAsync(ip, port);
-                    _stream = _tcpClient.GetStream();
-
-                    // start loop chờ nhận tin nhắn
-                    _ = ReceiveDataAsync();
-                    break; // Kết nối thành công, thoát vòng lặp
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi kết nối: {ex.Message}");
-                    _tcpClient?.Close();
-                    _tcpClient = null;
-
-                    await Task.Delay(3000); // Đợi 2 giây trước khi thử lại
-                }
-            }
+            _ = Task.Run(ReceiveDataAsync);
         }
 
         public void Disconnect()
         {
-            _stream?.Close();
-            _tcpClient?.Close();
-            OnDisconnected?.Invoke();
+            Disconnect(true);
+        }
+
+        private void Disconnect(bool notify)
+        {
+            try { _reader?.Dispose(); } catch { }
+            try { _writer?.Dispose(); } catch { }
+            try { _stream?.Dispose(); } catch { }
+            try { _tcpClient?.Close(); } catch { }
+
+            _reader = null;
+            _writer = null;
+            _stream = null;
+            _tcpClient = null;
+
+            if (notify)
+                OnDisconnected?.Invoke();
         }
 
         /// <summary>
-        /// Hàm gửi gói tin đối tượng dạng JSON (Bắt buộc cộng \n ở cuối để chống dính gói mạng)
+        /// Gửi packet sang Server. Phải serialize theo kiểu thật của object
+        /// để không mất các field con như Username, Password, Rankings...
         /// </summary>
         public async Task SendPacketAsync(BasePacket packet)
         {
-            if (_stream != null && _stream.CanWrite)
+            if (!IsConnected || _writer == null)
+                throw new InvalidOperationException("Client chưa kết nối tới Server.");
+
+            await _writeLock.WaitAsync();
+            try
             {
-                try
-                {
-                    // 1. Chuyển đối tượng Packet sang chuỗi văn bản JSON
-                    string jsonString = JsonSerializer.Serialize(packet);
-
-                    // 2. Thêm ký tự xuống dòng \n ở cuối để phân tách gói
-                    jsonString += "\n";
-
-                    // 3. Mã hóa chuỗi JSON sang mảng byte UTF-8 và bắn qua mạng
-                    byte[] data = Encoding.UTF8.GetBytes(jsonString);
-                    await _stream.WriteAsync(data, 0, data.Length);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[LỖI SENDER] Gửi gói tin JSON thất bại: {ex.Message}");
-                    Disconnect();
-                }
+                string jsonString = JsonSerializer.Serialize(packet, packet.GetType());
+                await _writer.WriteLineAsync(jsonString);
             }
-        }
-
-        /// <summary>
-        /// Hàm gửi chuỗi string văn bản thô
-        /// </summary>
-        public async Task SendRawMessageAsync(string message)
-        {
-            if (_stream != null && _stream.CanWrite)
+            finally
             {
-                try
-                {
-                    // Đảm bảo tin nhắn thô cũng có \n để đầu Server đọc được bằng ReadLineAsync
-                    if (!message.EndsWith("\n"))
-                    {
-                        message += "\n";
-                    }
-
-                    byte[] data = Encoding.UTF8.GetBytes(message);
-                    await _stream.WriteAsync(data, 0, data.Length);
-                    System.Diagnostics.Debug.WriteLine($"[CLIENT GỬI RAW]: {message.Trim()}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Lỗi gửi tin nhắn thô: {ex.Message}");
-                    Disconnect();
-                }
+                _writeLock.Release();
             }
         }
 
         private async Task ReceiveDataAsync()
         {
-            byte[] buffer = new byte[1024];
             try
             {
-                while (_tcpClient != null && _tcpClient.Connected)
+                while (IsConnected && _reader != null)
                 {
-                    int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
-                    {
-                        string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        OnMessageReceived?.Invoke(message);
-                    }
-                    else
-                    {
-                        Disconnect();
+                    string? line = await _reader.ReadLineAsync();
+                    if (line == null)
                         break;
-                    }
+
+                    if (!string.IsNullOrWhiteSpace(line))
+                        OnMessageReceived?.Invoke(line);
                 }
             }
-            catch (Exception)
+            catch
             {
-                Disconnect();
+                // Kết nối bị ngắt hoặc stream đóng.
+            }
+            finally
+            {
+                Disconnect(true);
             }
         }
     }
