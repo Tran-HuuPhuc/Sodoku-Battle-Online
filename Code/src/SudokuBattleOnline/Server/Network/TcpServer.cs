@@ -1,3 +1,4 @@
+using SudokuBattle.Server.Rooms;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -53,8 +54,9 @@ namespace SudokuBattle.Server.Network
             _sessionManager = new SessionManager();
             _matchmakingQueue = new SudokuBattle.Server.Matchmaking.MatchmakingQueue();
             _matchmakingManager = new SudokuBattle.Server.Matchmaking.MatchmakingManager(_matchmakingQueue);
-            
-            _packetHandler = new PacketHandler(_sessionManager, _matchmakingQueue);
+
+            var roomManager = new RoomManager();
+            _packetHandler = new PacketHandler(_sessionManager, _matchmakingQueue, roomManager);
             _packetRouter = new PacketRouter(_packetHandler);
         }
 

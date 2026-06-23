@@ -8,6 +8,7 @@ using Server.Services;
 using Shared.Enums;
 using SudokuBattleOnline.Shared.Packets;
 using SudokuBattle.Server.Matchmaking;
+using SudokuBattle.Server.Rooms;
 
 namespace SudokuBattle.Server.Network
 {
@@ -24,11 +25,14 @@ namespace SudokuBattle.Server.Network
         private readonly UserRepository _userRepository;
         private readonly MatchRepository _matchRepository;
         private readonly RankingRepository _rankingRepository;
+        private readonly RoomManager _roomManager;
 
-        public PacketHandler(SessionManager sessionManager, MatchmakingQueue matchmakingQueue)
+        public PacketHandler(SessionManager sessionManager, MatchmakingQueue matchmakingQueue, RoomManager roomManager)
         {
             _sessionManager = sessionManager;
             _matchmakingQueue = matchmakingQueue;
+            _roomManager = roomManager;
+
             _databaseContext = new DatabaseContext("database/sudoku.db");
             _databaseContext.Initialize();
 
@@ -184,15 +188,21 @@ namespace SudokuBattle.Server.Network
         {
             if (!await RequireAuthAsync(session)) return;
 
-            Console.WriteLine($"[ROOM] {session} tạo phòng: '{packet.RoomName}'");
+            var room = _roomManager.CreateRoom(packet.RoomName ?? "Room");
+            var (success, message) = room.AddMember(session);
 
             await session.SendPacketAsync(new CreateRoomPacket
             {
                 PacketType = "CREATE_ROOM_RESULT",
                 RoomName = packet.RoomName,
-                Success = true,
-                Message = $"Đã tạo phòng '{packet.RoomName}' thành công."
+                RoomId = room.Id,
+                Success = success,
+                Message = message
             });
+            if (success)
+            {
+                Console.WriteLine($"[ROOM] {session} đã tạo và vào phòng {room.Id} ('{room.Name}').");
+            }
         }
 
         public async Task HandleJoinRoomAsync(ClientSession session, JoinRoomPacket packet)
@@ -201,30 +211,73 @@ namespace SudokuBattle.Server.Network
 
             Console.WriteLine($"[ROOM] {session} tham gia phòng: {packet.RoomId}");
 
+            if (!_roomManager.TryGetRoom(packet.RoomId, out var room))
+            {
+                await session.SendPacketAsync(new JoinRoomPacket
+                {
+                    PacketType = "JOIN_ROOM_RESULT",
+                    RoomId = packet.RoomId,
+                    Success = false,
+                    Message = "Không tìm thấy phòng."
+                });
+                return;
+            }
+
+            var (success, message) = room.AddMember(session);
             await session.SendPacketAsync(new JoinRoomPacket
             {
                 PacketType = "JOIN_ROOM_RESULT",
                 RoomId = packet.RoomId,
-                Success = true,
-                Message = $"Đã tham gia phòng {packet.RoomId}."
+                Success = success,
+                Message = message
             });
+
+            if (success)
+            {
+                await room.BroadcastExceptAsync(new ChatPacket
+                {
+                    PacketType = "ROOM_SYSTEM",
+                    Content = $"{session.Username ?? session.SessionId} đã vào phòng."
+                }, session.SessionId);
+                Console.WriteLine($"[ROOM] {session} join phòng {room.Id}.");
+            }
+
         }
 
         public async Task HandleLeaveRoomAsync(ClientSession session, LeaveRoomPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
 
-            Console.WriteLine($"[ROOM] {session} rời phòng: {packet.RoomId}");
+            if (!_roomManager.TryGetRoom(packet.RoomId, out var room))
+            {
+                await session.SendPacketAsync(new LeaveRoomPacket
+                {
+                    PacketType = "LEAVE_ROOM_RESULT",
+                    RoomId = packet.RoomId,
+                    Success = false,
+                    Message = "Không tìm thấy phòng."
+                });
+                return;
+            }
 
-            session.CurrentRoomId = null;
-
+            var (success, message) = room.RemoveMember(session);
             await session.SendPacketAsync(new LeaveRoomPacket
             {
                 PacketType = "LEAVE_ROOM_RESULT",
                 RoomId = packet.RoomId,
-                Success = true,
-                Message = "Đã rời phòng."
+                Success = success,
+                Message = message
             });
+
+            if (success)
+            {
+                await room.BroadcastAsync(new ChatPacket
+                {
+                    PacketType = "ROOM_SYSTEM",
+                    Content = $"{session.Username ?? session.SessionId} đã rời phòng."
+                });
+                Console.WriteLine($"[ROOM] {session} rời phòng {room.Id}.");
+            }
         }
 
         // ═══════════════════════════════════════════════
