@@ -116,10 +116,38 @@ namespace SudokuBattleOnline.Forms
 
             btnCheck.Click += async (s, e) =>
             {
+                int emptyCells = 0;
+                int wrongCells = 0;
+
+                for (int r = 0; r < 9; r++)
+                {
+                    for (int c = 0; c < 9; c++)
+                    {
+                        if (string.IsNullOrWhiteSpace(cells[r, c].Text))
+                        {
+                            emptyCells++;
+                        }
+                        else if (int.TryParse(cells[r, c].Text, out int val))
+                        {
+                            if (val != currentSolution[r, c])
+                            {
+                                wrongCells++;
+                                cells[r, c].ForeColor = Color.Red;
+                            }
+                        }
+                    }
+                }
+
+                if (emptyCells > 0 || wrongCells > 0)
+                {
+                    string msg = $"Bảng Sudoku chưa hoàn thành.\n- Ô trống: {emptyCells}\n- Ô sai: {wrongCells}";
+                    MessageBox.Show(msg, "Kết quả kiểm tra", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return; 
+                }
+
                 int timeSeconds = Math.Max(1, (int)(DateTime.Now - startedAt).TotalSeconds);
-                int emptyCells = CountEmptyCells();
-                int score = Math.Max(0, 1000 - timeSeconds * 2 - emptyCells * 10);
-                string result = emptyCells == 0 ? "Win" : "Completed";
+                int score = Math.Max(0, 1000 - timeSeconds * 2);
+                string result = "Win";
 
                 try
                 {
@@ -141,8 +169,8 @@ namespace SudokuBattleOnline.Forms
                         return;
                     }
 
-                    MessageBox.Show($"Đã lưu lịch sử chơi vào SQLite phía Server.\nKết quả: {result}\nĐiểm: {score}\nThời gian: {timeSeconds} giây",
-                        "Đã lưu", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"Chúc mừng! Bạn đã hoàn thành xuất sắc!\nĐã lưu lịch sử chơi vào Server.\nKết quả: {result}\nĐiểm: {score}\nThời gian: {timeSeconds} giây",
+                        "Chiến thắng", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
@@ -264,12 +292,51 @@ namespace SudokuBattleOnline.Forms
 
                     txt.Font = new Font("Arial", 16, FontStyle.Bold);
                     txt.TextAlign = HorizontalAlignment.Center;
+                    txt.MaxLength = 1;
 
                     int x = c * size + (c / 3) * 4;
                     int y = r * size + (r / 3) * 4;
 
                     txt.Location = new Point(x, y);
                     txt.Size = new Size(size, size);
+
+                    int captureR = r;
+                    int captureC = c;
+
+                    txt.KeyPress += (s, e) =>
+                    {
+                        if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
+                        {
+                            e.Handled = true;
+                        }
+                        if (e.KeyChar == '0')
+                        {
+                            e.Handled = true;
+                        }
+                    };
+
+                    txt.TextChanged += (s, e) =>
+                    {
+                        if (txt.ReadOnly) return;
+
+                        if (string.IsNullOrEmpty(txt.Text))
+                        {
+                            txt.ForeColor = Color.Black;
+                            return;
+                        }
+
+                        if (int.TryParse(txt.Text, out int value))
+                        {
+                            if (value == currentSolution[captureR, captureC])
+                            {
+                                txt.ForeColor = Color.Blue; // Đúng thì màu xanh
+                            }
+                            else
+                            {
+                                txt.ForeColor = Color.Red; // Sai thì màu đỏ
+                            }
+                        }
+                    };
 
                     cells[r, c] = txt;
                     board.Controls.Add(txt);
