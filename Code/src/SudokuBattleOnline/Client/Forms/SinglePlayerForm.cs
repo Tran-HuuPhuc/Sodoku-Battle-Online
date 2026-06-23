@@ -3,7 +3,8 @@ using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-
+using Shared.Enums;
+using SudokuBattleOnline.Client.Game;
 namespace SudokuBattleOnline.Forms
 {
     public class SinglePlayerForm : Form
@@ -12,7 +13,13 @@ namespace SudokuBattleOnline.Forms
         private TextBox[,] cells = new TextBox[9, 9];
         private Random random = new Random();
         private DateTime startedAt = DateTime.Now;
+        private Difficulty currentDifficulty = Difficulty.Medium;
+        private ComboBox cmbDifficulty = null!;
 
+        private readonly SudokuGenerator sudokuGenerator = new();
+
+        private int[,] currentPuzzle = new int[9, 9];
+        private int[,] currentSolution = new int[9, 9];
         private string[][,] puzzles =
         {
             new string[,]
@@ -55,11 +62,40 @@ namespace SudokuBattleOnline.Forms
             lblTitle.Location = new Point(250, 20);
 
             Controls.Add(lblTitle);
+            Label lblDifficulty = new Label();
+            lblDifficulty.Text = "Độ khó:";
+            lblDifficulty.Location = new Point(500, 55);
+            lblDifficulty.Size = new Size(120, 25);
 
+            cmbDifficulty = new ComboBox();
+            cmbDifficulty.Location = new Point(500, 75);
+            cmbDifficulty.Size = new Size(120, 30);
+            cmbDifficulty.DropDownStyle = ComboBoxStyle.DropDownList;
+
+            cmbDifficulty.Items.Add(Difficulty.Easy.ToVietnamese());
+            cmbDifficulty.Items.Add(Difficulty.Medium.ToVietnamese());
+            cmbDifficulty.Items.Add(Difficulty.Hard.ToVietnamese());
+
+            cmbDifficulty.SelectedIndex = 1; // mặc định Trung Bình
+
+            cmbDifficulty.SelectedIndexChanged += (s, e) =>
+            {
+                currentDifficulty = cmbDifficulty.SelectedIndex switch
+                {
+                    0 => Difficulty.Easy,
+                    1 => Difficulty.Medium,
+                    2 => Difficulty.Hard,
+                    _ => Difficulty.Medium
+                };
+            };
+
+            Controls.Add(lblDifficulty);
+            Controls.Add(cmbDifficulty);
             board = new Panel();
             board.Location = new Point(20, 70);
             board.Size = new Size(390, 390);
             board.BorderStyle = BorderStyle.FixedSingle;
+            Controls.Add(board);
 
             CreateBoard();
 
@@ -70,7 +106,7 @@ namespace SudokuBattleOnline.Forms
 
             btnNew.Click += (s, e) =>
             {
-                LoadRandomPuzzle();
+                LoadNewPuzzleByDifficulty();
             };
 
             Button btnCheck = new Button();
@@ -92,7 +128,7 @@ namespace SudokuBattleOnline.Forms
                         PacketType = "SAVE_MATCH_RESULT",
                         Opponent = "Single Player",
                         Result = result,
-                        Difficulty = "Medium",
+                        Difficulty = currentDifficulty.ToString(),
                         Score = score,
                         TimeSeconds = timeSeconds
                     };
@@ -135,15 +171,87 @@ namespace SudokuBattleOnline.Forms
                 Close();
             };
 
-            Controls.Add(board);
+            
             Controls.Add(btnNew);
             Controls.Add(btnCheck);
             Controls.Add(btnSolve);
             Controls.Add(btnBack);
 
-            LoadRandomPuzzle();
+            //LoadRandomPuzzle();
+            LoadNewPuzzleByDifficulty();
         }
+        private void LoadNewPuzzleByDifficulty()
+        {
+            if (cmbDifficulty == null)
+            {
+                MessageBox.Show("ComboBox độ khó chưa được khởi tạo.");
+                return;
+            }
 
+            if (cells[0, 0] == null)
+            {
+                MessageBox.Show("Bảng Sudoku chưa được tạo. Kiểm tra lại CreateBoard().");
+                return;
+            }
+
+            currentDifficulty = cmbDifficulty.SelectedIndex switch
+            {
+                0 => Difficulty.Easy,
+                1 => Difficulty.Medium,
+                2 => Difficulty.Hard,
+                _ => Difficulty.Medium
+            };
+
+            startedAt = DateTime.Now;
+
+            var generated = sudokuGenerator.GeneratePuzzleWithSolution(currentDifficulty);
+
+            if (generated.Puzzle == null || generated.Solution == null)
+            {
+                MessageBox.Show("SudokuGenerator trả về dữ liệu rỗng. Kiểm tra GeneratePuzzleWithSolution().");
+                return;
+            }
+
+            currentPuzzle = generated.Puzzle;
+            currentSolution = generated.Solution;
+
+            LoadPuzzleToBoard(currentPuzzle);
+        }
+        private void LoadPuzzleToBoard(int[,] puzzle)
+        {
+            if (puzzle == null)
+            {
+                MessageBox.Show("Puzzle bị null.");
+                return;
+            }
+
+            for (int r = 0; r < 9; r++)
+            {
+                for (int c = 0; c < 9; c++)
+                {
+                    if (cells[r, c] == null)
+                    {
+                        MessageBox.Show($"Ô cells[{r},{c}] chưa được tạo.");
+                        return;
+                    }
+
+                    int value = puzzle[r, c];
+
+                    if (value != 0)
+                    {
+                        cells[r, c].Text = value.ToString();
+                        cells[r, c].ReadOnly = true;
+                        cells[r, c].BackColor = Color.LightGray;
+                    }
+                    else
+                    {
+                        cells[r, c].Text = "";
+                        cells[r, c].ReadOnly = false;
+                        cells[r, c].BackColor = Color.White;
+                    }
+                }
+            }
+        }
         private void CreateBoard()
         {
             int size = 40;

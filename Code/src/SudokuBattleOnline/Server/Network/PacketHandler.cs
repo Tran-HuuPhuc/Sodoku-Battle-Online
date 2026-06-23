@@ -263,7 +263,7 @@ namespace SudokuBattle.Server.Network
 
             bool isWin = result.Equals("Win", StringComparison.OrdinalIgnoreCase);
             bool isLose = result.Equals("Lose", StringComparison.OrdinalIgnoreCase);
-            int eloDelta = isWin ? 15 : isLose ? -10 : 0;
+            int eloDelta = isWin ? difficulty.GetEloWin() : isLose ? difficulty.GetEloLose() : 0;
 
             var match = new MatchEntity
             {
@@ -280,9 +280,9 @@ namespace SudokuBattle.Server.Network
             _matchRepository.SaveMatch(match);
 
             if (isWin)
-                _userRepository.UpdateStats(username, 15, true);
+                _userRepository.UpdateStats(username, eloDelta, true);
             else if (isLose)
-                _userRepository.UpdateStats(username, -10, false);
+                _userRepository.UpdateStats(username, eloDelta, false);
 
             if (packet.TimeSeconds > 0 && (isWin || result.Equals("Completed", StringComparison.OrdinalIgnoreCase)))
                 _rankingRepository.TryUpdateBestRecord(username, difficulty, packet.TimeSeconds);

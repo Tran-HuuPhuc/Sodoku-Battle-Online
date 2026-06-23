@@ -1,22 +1,29 @@
 ﻿using Shared.Enums;
-using SudokuBattle.Shared.Enums;
 
-namespace SudokuBattle.Client.Game
+namespace SudokuBattleOnline.Client.Game
 {
     public class SudokuGenerator
     {
         private const int Size = 9;
         private readonly Random random = new();
 
+        public (int[,] Puzzle, int[,] Solution) GeneratePuzzleWithSolution(Difficulty difficulty)
+        {
+            int[,] solution = new int[Size, Size];
+
+            GenerateFullBoard(solution);
+
+            int[,] puzzle = (int[,])solution.Clone();
+
+            RemoveCells(puzzle, difficulty);
+
+            return (puzzle, solution);
+        }
+
         public int[,] GenerateBoard(Difficulty difficulty)
         {
-            int[,] board = new int[Size, Size];
-
-            GenerateFullBoard(board);
-
-            RemoveCells(board, difficulty);
-
-            return board;
+            var result = GeneratePuzzleWithSolution(difficulty);
+            return result.Puzzle;
         }
 
         private void GenerateFullBoard(int[,] board)
@@ -29,8 +36,8 @@ namespace SudokuBattle.Client.Game
             if (row == Size)
                 return true;
 
-            int nextRow = (col == Size - 1) ? row + 1 : row;
-            int nextCol = (col == Size - 1) ? 0 : col + 1;
+            int nextRow = col == Size - 1 ? row + 1 : row;
+            int nextCol = col == Size - 1 ? 0 : col + 1;
 
             List<int> numbers = ShuffleNumbers();
 
@@ -78,7 +85,7 @@ namespace SudokuBattle.Client.Game
 
         private void RemoveCells(int[,] board, Difficulty difficulty)
         {
-            int cellsToRemove = CountCellsToRemove(difficulty);
+            int cellsToRemove = difficulty.GetHiddenCount();
 
             while (cellsToRemove > 0)
             {
@@ -93,17 +100,6 @@ namespace SudokuBattle.Client.Game
             }
         }
 
-        private int CountCellsToRemove(Difficulty difficulty)
-        {
-            return difficulty switch
-            {
-                Difficulty.Easy => 35,
-                Difficulty.Medium => 45,
-                Difficulty.Hard => 55,
-                _ => 40
-            };
-        }
-
         private List<int> ShuffleNumbers()
         {
             List<int> numbers = Enumerable.Range(1, 9).ToList();
@@ -111,7 +107,6 @@ namespace SudokuBattle.Client.Game
             for (int i = numbers.Count - 1; i > 0; i--)
             {
                 int j = random.Next(i + 1);
-
                 (numbers[i], numbers[j]) = (numbers[j], numbers[i]);
             }
 

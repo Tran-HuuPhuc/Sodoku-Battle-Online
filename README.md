@@ -1,156 +1,144 @@
 ```text
-SudokuBattleOnline
-│
-├── src
-│   │
-│   ├── SudokuBattle.Client
-│   │   │
-│   │   ├── Forms
-│   │   │   ├── LoginForm.cs
-│   │   │   ├── RegisterForm.cs
-│   │   │   ├── MainMenuForm.cs
-│   │   │   ├── ProfileForm.cs
-│   │   │   ├── RankingForm.cs
-│   │   │   ├── MatchHistoryForm.cs
-│   │   │   ├── SinglePlayerForm.cs
-│   │   │   ├── LobbyForm.cs
-│   │   │   ├── RoomForm.cs
-│   │   │   └── MultiplayerGameForm.cs
-│   │   │
-│   │   ├── Controls
-│   │   │   ├── SudokuBoardControl.cs
-│   │   │   ├── SudokuCellControl.cs
-│   │   │   ├── PlayerInfoControl.cs
-│   │   │   └── ChatControl.cs
-│   │   │
-│   │   ├── Network
-│   │   │   ├── ClientConnection.cs
-│   │   │   ├── PacketSender.cs
-│   │   │   ├── PacketReceiver.cs
-│   │   │   └── PacketHandler.cs
-│   │   │
-│   │   ├── Services
-│   │   │   ├── AuthService.cs
-│   │   │   ├── UserService.cs
-│   │   │   ├── RankingService.cs
-│   │   │   ├── MatchHistoryService.cs
-│   │   │   └── RoomService.cs
-│   │   │
-│   │   ├── Game
-│   │   │   ├── Board.cs
-│   │   │   ├── Cell.cs
-│   │   │   ├── SudokuGenerator.cs
-│   │   │   ├── SudokuValidator.cs
-│   │   │   ├── TimerManager.cs
-│   │   │   ├── ProgressCalculator.cs
-│   │   │   └── SinglePlayerManager.cs
-│   │   │
-│   │   ├── Models
-│   │   │   ├── User.cs
-│   │   │   ├── Match.cs
-│   │   │   ├── Room.cs
-│   │   │   └── PlayerStatistic.cs
-│   │   │
-│   │   ├── Assets
-│   │   │   ├── Images
-│   │   │   ├── Icons
-│   │   │   └── Sounds
-│   │   │
-│   │   └── Program.cs
-│   │
-│   ├── SudokuBattle.Server
-│   │   │
-│   │   ├── Network
-│   │   │   ├── TcpServer.cs
-│   │   │   ├── ClientSession.cs
-│   │   │   ├── SessionManager.cs
-│   │   │   ├── PacketRouter.cs
-│   │   │   └── PacketHandler.cs
-│   │   │
-│   │   ├── Matchmaking
-│   │   │   ├── MatchmakingQueue.cs
-│   │   │   └── MatchmakingManager.cs
-│   │   │
-│   │   ├── RoomManager
-│   │   │   ├── Room.cs
-│   │   │   └── RoomManager.cs
-│   │   │
-│   │   ├── GameManager
-│   │   │   ├── GameRoom.cs
-│   │   │   ├── SudokuGenerator.cs
-│   │   │   ├── SudokuValidator.cs
-│   │   │   ├── MultiplayerGameManager.cs
-│   │   │   └── ResultCalculator.cs
-│   │   │
-│   │   ├── Services
-│   │   │   ├── AuthService.cs
-│   │   │   ├── UserService.cs
-│   │   │   ├── RankingService.cs
-│   │   │   ├── MatchHistoryService.cs
-│   │   │   └── RoomService.cs
-│   │   │
-│   │   ├── Database
-│   │   │   ├── DatabaseContext.cs
-│   │   │   ├── UserRepository.cs
-│   │   │   ├── MatchRepository.cs
-│   │   │   ├── RankingRepository.cs
-│   │   │   └── RoomRepository.cs
-│   │   │
-│   │   ├── Models
-│   │   │   ├── UserEntity.cs
-│   │   │   ├── MatchEntity.cs
-│   │   │   └── RoomEntity.cs
-│   │   │
-│   │   └── Program.cs
-│   │
-│   └── SudokuBattle.Shared
-│       │
-│       ├── Models
-│       │   ├── UserInfo.cs
-│       │   ├── MatchInfo.cs
-│       │   ├── RoomInfo.cs
-│       │   ├── ChatMessage.cs
-│       │   └── GameState.cs
-│       │
-│       ├── Packets
-│       │   ├── BasePacket.cs
-│       │   ├── LoginPacket.cs
-│       │   ├── RegisterPacket.cs
-│       │   ├── CreateRoomPacket.cs
-│       │   ├── JoinRoomPacket.cs
-│       │   ├── LeaveRoomPacket.cs
-│       │   ├── FindMatchPacket.cs
-│       │   ├── MatchFoundPacket.cs
-│       │   ├── CellUpdatePacket.cs
-│       │   ├── ChatPacket.cs
-│       │   ├── GameStartPacket.cs
-│       │   ├── GameOverPacket.cs
-│       │   └── RankingPacket.cs
-│       │
-│       ├── Enums
-│       │   ├── PacketType.cs
-│       │   ├── Difficulty.cs
-│       │   ├── RoomStatus.cs
-│       │   ├── MatchResult.cs
-│       │   └── UserStatus.cs
-│       │
-│       └── Constants
-│           ├── NetworkConstants.cs
-│           └── GameConstants.cs
-│
-├── database
-│   ├── sudoku.db
-│   └── backup
-│
-├── docs
-│   ├── SRS
-│   ├── UML
-│   ├── ERD
-│   ├── MeetingMinutes
-│   ├── WeeklyReports
-│   └── FinalReport
-│
+Sodoku-Battle-Online/
+├── .git/
+├── Code/
+│   └── src/
+│       └── SudokuBattleOnline/
+│           │
+│           ├── SudokuBattleOnline.sln
+│           │
+│           ├── Client/
+│           │   │
+│           │   ├── Client.csproj
+│           │   ├── Program.cs
+│           │   ├── AppSession.cs
+│           │   │
+│           │   ├── Assets/
+│           │   │   ├── Images/
+│           │   │   ├── Icons/
+│           │   │   └── Sounds/
+│           │   │
+│           │   ├── Forms/
+│           │   │   ├── LoginForm.cs
+│           │   │   ├── LoginForm.Designer.cs
+│           │   │   ├── LoginForm.resx
+│           │   │   │
+│           │   │   ├── RegisterForm.cs
+│           │   │   ├── RegisterForm.Designer.cs
+│           │   │   ├── RegisterForm.resx
+│           │   │   │
+│           │   │   ├── MainMenuForm.cs
+│           │   │   ├── MainMenuForm.Designer.cs
+│           │   │   ├── MainMenuForm.resx
+│           │   │   │
+│           │   │   ├── LobbyForm.cs
+│           │   │   ├── LobbyForm.Designer.cs
+│           │   │   ├── LobbyForm.resx
+│           │   │   │
+│           │   │   ├── RoomForm.cs
+│           │   │   ├── RoomForm.Designer.cs
+│           │   │   ├── RoomForm.resx
+│           │   │   │
+│           │   │   ├── ProfileForm.cs
+│           │   │   ├── ProfileForm.Designer.cs
+│           │   │   ├── ProfileForm.resx
+│           │   │   │
+│           │   │   ├── RankingForm.cs
+│           │   │   ├── RankingForm.Designer.cs
+│           │   │   ├── RankingForm.resx
+│           │   │   │
+│           │   │   ├── MatchHistoryForm.cs
+│           │   │   ├── MatchHistoryForm.Designer.cs
+│           │   │   ├── MatchHistoryForm.resx
+│           │   │   │
+│           │   │   ├── BestScoreForm.cs
+│           │   │   ├── BestScoreForm.Designer.cs
+│           │   │   ├── BestScoreForm.resx
+│           │   │   │
+│           │   │   ├── SinglePlayerForm.cs
+│           │   │   ├── SinglePlayerForm.Designer.cs
+│           │   │   ├── SinglePlayerForm.resx
+│           │   │   │
+│           │   │   ├── MultiplayerGameForm.cs
+│           │   │   ├── MultiplayerGameForm.Designer.cs
+│           │   │   └── MultiplayerGameForm.resx
+│           │   │
+│           │   ├── Game/
+│           │   │   ├── SudokuGenerator.cs
+│           │   │   └── SudokuValidator.cs
+│           │   │
+│           │   └── Network/
+│           │       └── ClientConnection.cs
+│           │
+│           ├── Server/
+│           │   │
+│           │   ├── Server.csproj
+│           │   ├── Program.cs
+│           │   │
+│           │   ├── Database/
+│           │   │   ├── DatabaseContext.cs
+│           │   │   ├── UserRepository.cs
+│           │   │   ├── MatchRepository.cs
+│           │   │   ├── RankingRepository.cs
+│           │   │   └── BestRecordRepository.cs
+│           │   │
+│           │   ├── Models/
+│           │   │   ├── UserEntity.cs
+│           │   │   ├── MatchEntity.cs
+│           │   │   ├── RoomEntity.cs
+│           │   │   └── BestRecordEntity.cs
+│           │   │
+│           │   ├── Network/
+│           │   │   ├── TcpServer.cs
+│           │   │   ├── ClientSession.cs
+│           │   │   ├── PacketRouter.cs
+│           │   │   └── PacketHandler.cs
+│           │   │
+│           │   ├── Services/
+│           │   │   └── AuthService.cs
+│           │   │
+│           │   ├── GameManager/
+│           │   │   └── GameManager.cs
+│           │   │
+│           │   ├── RoomManager/
+│           │   │   └── RoomManager.cs
+│           │   │
+│           │   └── Matchmaking/
+│           │       └── MatchmakingManager.cs
+│           │
+│           └── Shared/
+│               │
+│               ├── Shared.csproj
+│               │
+│               ├── Packets/
+│               │   ├── BasePacket.cs
+│               │   ├── LoginPacket.cs
+│               │   ├── RegisterPacket.cs
+│               │   ├── UserProfilePacket.cs
+│               │   ├── RankingPacket.cs
+│               │   ├── MatchHistoryPacket.cs
+│               │   ├── BestScorePacket.cs
+│               │   ├── MatchResultPacket.cs
+│               │   └── RoomPacket.cs
+│               │
+│               ├── Enums/
+│               │   ├── Difficulty.cs
+│               │   ├── PlayerStatus.cs
+│               │   └── RoomStatus.cs
+│               │
+│               ├── Constants/
+│               │   └── PacketTypes.cs
+│               │
+│               └── Models/
+│                   ├── RoomInfo.cs
+│                   └── PlayerInfo.cs
+├── DOCX/
+│   ├── Assignment_Phrase1.docx
+│   ├── Assignment_Phrase2.docx
+│   └── Assignment_Phrase3.docx
+├── Extra/
+│   └── gitkeep.git
+├── PPTX/
+│   └── gitkeep.git
 ├── .gitignore
-├── README.md
-│
-└── SudokuBattleOnline.sln
+└── README.md

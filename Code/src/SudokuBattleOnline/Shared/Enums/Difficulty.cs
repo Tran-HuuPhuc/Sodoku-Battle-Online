@@ -1,5 +1,4 @@
-﻿
-using Shared.Constants;
+﻿using Shared.Constants;
 
 namespace Shared.Enums
 {
@@ -10,58 +9,89 @@ namespace Shared.Enums
         Hard
     }
 
-    /// <summary>
-    /// Các tiện ích mở rộng cho enum Difficulty.
-    /// </summary>
     public static class DifficultyExtensions
     {
-        /// <summary>Số ô đã cho (clues) để lại trên bảng.</summary>
-        public static int GetClueCount(this Difficulty d) => d switch
+        public static int GetClueCount(this Difficulty difficulty)
         {
-            Difficulty.Easy => GameConstants.EASY_CLUES,
-            Difficulty.Medium => GameConstants.MEDIUM_CLUES,
-            Difficulty.Hard => GameConstants.HARD_CLUES,
-            _ => GameConstants.MEDIUM_CLUES
-        };
+            return difficulty switch
+            {
+                Difficulty.Easy => GameConstants.EASY_CLUES,
+                Difficulty.Medium => GameConstants.MEDIUM_CLUES,
+                Difficulty.Hard => GameConstants.HARD_CLUES,
+                _ => GameConstants.MEDIUM_CLUES
+            };
+        }
 
-        /// <summary>Số ô ẩn đi (= 81 - clues).</summary>
-        public static int GetHiddenCount(this Difficulty d) =>
-            GameConstants.BOARD_SIZE * GameConstants.BOARD_SIZE - d.GetClueCount();
-
-        /// <summary>Thời gian giới hạn tính bằng giây.</summary>
-        public static int GetTimeLimitSeconds(this Difficulty d) => d switch
+        public static int GetHiddenCount(this Difficulty difficulty)
         {
-            Difficulty.Easy => GameConstants.EASY_TIME_LIMIT,
-            Difficulty.Medium => GameConstants.MEDIUM_TIME_LIMIT,
-            Difficulty.Hard => GameConstants.HARD_TIME_LIMIT,
-            _ => GameConstants.MEDIUM_TIME_LIMIT
-        };
+            return GameConstants.BOARD_SIZE * GameConstants.BOARD_SIZE
+                   - difficulty.GetClueCount();
+        }
 
-        /// <summary>ELO cộng khi thắng.</summary>
-        public static int GetEloWin(this Difficulty d) => d switch
+        public static int GetTimeLimitSeconds(this Difficulty difficulty)
         {
-            Difficulty.Easy => GameConstants.EASY_ELO_WIN,
-            Difficulty.Medium => GameConstants.MEDIUM_ELO_WIN,
-            Difficulty.Hard => GameConstants.HARD_ELO_WIN,
-            _ => GameConstants.MEDIUM_ELO_WIN
-        };
+            return difficulty switch
+            {
+                Difficulty.Easy => GameConstants.EASY_TIME_LIMIT,
+                Difficulty.Medium => GameConstants.MEDIUM_TIME_LIMIT,
+                Difficulty.Hard => GameConstants.HARD_TIME_LIMIT,
+                _ => GameConstants.MEDIUM_TIME_LIMIT
+            };
+        }
 
-        /// <summary>ELO trừ khi thua (giá trị âm).</summary>
-        public static int GetEloLose(this Difficulty d) => d switch
+        public static int GetEloWin(this Difficulty difficulty)
         {
-            Difficulty.Easy => GameConstants.EASY_ELO_LOSE,
-            Difficulty.Medium => GameConstants.MEDIUM_ELO_LOSE,
-            Difficulty.Hard => GameConstants.HARD_ELO_LOSE,
-            _ => GameConstants.MEDIUM_ELO_LOSE
-        };
+            return difficulty switch
+            {
+                Difficulty.Easy => GameConstants.EASY_ELO_WIN,
+                Difficulty.Medium => GameConstants.MEDIUM_ELO_WIN,
+                Difficulty.Hard => GameConstants.HARD_ELO_WIN,
+                _ => GameConstants.MEDIUM_ELO_WIN
+            };
+        }
 
-        /// <summary>Tên hiển thị tiếng Việt.</summary>
-        public static string ToVietnamese(this Difficulty d) => d switch
+        public static int GetEloLose(this Difficulty difficulty)
         {
-            Difficulty.Easy => "Dễ",
-            Difficulty.Medium => "Trung Bình",
-            Difficulty.Hard => "Khó",
-            _ => "Trung Bình"
-        };
+            return difficulty switch
+            {
+                Difficulty.Easy => GameConstants.EASY_ELO_LOSE,
+                Difficulty.Medium => GameConstants.MEDIUM_ELO_LOSE,
+                Difficulty.Hard => GameConstants.HARD_ELO_LOSE,
+                _ => GameConstants.MEDIUM_ELO_LOSE
+            };
+        }
+
+        public static int GetEloChange(this Difficulty difficulty, bool isWin)
+        {
+            return isWin ? difficulty.GetEloWin() : difficulty.GetEloLose();
+        }
+
+        public static string ToVietnamese(this Difficulty difficulty)
+        {
+            return difficulty switch
+            {
+                Difficulty.Easy => "Dễ",
+                Difficulty.Medium => "Trung bình",
+                Difficulty.Hard => "Khó",
+                _ => "Trung bình"
+            };
+        }
+
+        public static Difficulty FromString(string value)
+        {
+            return value.Trim().ToLower() switch
+            {
+                "easy" => Difficulty.Easy,
+                "dễ" => Difficulty.Easy,
+
+                "medium" => Difficulty.Medium,
+                "trung bình" => Difficulty.Medium,
+
+                "hard" => Difficulty.Hard,
+                "khó" => Difficulty.Hard,
+
+                _ => Difficulty.Medium
+            };
+        }
     }
 }
