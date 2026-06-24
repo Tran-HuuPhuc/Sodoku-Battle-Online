@@ -186,7 +186,21 @@ namespace SudokuBattleOnline.Forms
 
             btnSolve.Click += (s, e) =>
             {
-                MessageBox.Show("Chức năng Solve đang phát triển.");
+                if (currentSolution != null && currentSolution[0, 0] != 0)
+                {
+                    for (int r = 0; r < 9; r++)
+                    {
+                        for (int c = 0; c < 9; c++)
+                        {
+                            if (!cells[r, c].ReadOnly)
+                            {
+                                cells[r, c].Text = currentSolution[r, c].ToString();
+                                cells[r, c].ForeColor = Color.Blue;
+                            }
+                        }
+                    }
+                    MessageBox.Show("Đã giải xong bảng Sudoku!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
             };
 
             Button btnBack = new Button();
