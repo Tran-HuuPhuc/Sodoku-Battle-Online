@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace SudokuBattle.Server.Network
 {
@@ -41,14 +42,21 @@ namespace SudokuBattle.Server.Network
 
         // ─── Cấu hình ───
         private readonly int _port;
+        private readonly int _maxConnections;
+        private readonly int _maxConnectionsPerIP;
+
+        // ─── Đếm IP ───
+        private readonly ConcurrentDictionary<string, int> _ipConnectionCounts = new();
 
         /// <summary>
         /// Khởi tạo TcpServer với cổng chỉ định (mặc định 8888).
         /// Tự động khởi tạo toàn bộ hệ thống quản lý phiên, định tuyến và xử lý gói tin.
         /// </summary>
-        public TcpServer(int port = 8888)
+        public TcpServer(int port = 8888, int maxConnections = 500, int maxConnectionsPerIP = 3)
         {
             _port = port;
+            _maxConnections = maxConnections;
+            _maxConnectionsPerIP = maxConnectionsPerIP;
 
             // Khởi tạo các module theo đúng thứ tự phụ thuộc
             _sessionManager = new SessionManager();
@@ -140,27 +148,58 @@ namespace SudokuBattle.Server.Network
         /// </summary>
         private async Task HandleNewClientAsync(TcpClient tcpClient)
         {
-            // 1. Tạo phiên kết nối mới
-            ClientSession session = new ClientSession(tcpClient);
-
-            // 2. Đăng ký phiên vào hệ thống quản lý
-            _sessionManager.AddSession(session);
-
-            // 3. Khi nhận dữ liệu JSON -> chuyển cho PacketRouter xử lý
-            session.OnDataReceived += (sender, jsonLine) =>
+            try
             {
-                _packetRouter.Route(sender, jsonLine);
-            };
+                // Bảo vệ: Kiểm tra giới hạn tổng số kết nối
+                if (_sessionManager.OnlineCount >= _maxConnections)
+                {
+                    Console.WriteLine($"[BẢO VỆ] Đạt giới hạn tối đa {_maxConnections} kết nối. Tạm thời từ chối.");
+                    tcpClient.Close();
+                    return;
+                }
 
-            // 4. Khi client ngắt kết nối -> gỡ khỏi SessionManager và hàng đợi Matchmaking
-            session.OnDisconnected += (sender) =>
+                // kiểm tra kết nối mỗi IP
+                string ipAddress = ((IPEndPoint)tcpClient.Client.RemoteEndPoint!).Address.ToString();
+                int currentConnections = _ipConnectionCounts.AddOrUpdate(ipAddress, 1, (key, count) => count + 1);
+
+                if (currentConnections > _maxConnectionsPerIP)
+                {
+                    Console.WriteLine($"[BẢO VỆ] IP {ipAddress} vượt quá giới hạn {_maxConnectionsPerIP} kết nối/IP. Đã chặn.");
+                    _ipConnectionCounts.AddOrUpdate(ipAddress, 0, (key, count) => count - 1);
+                    tcpClient.Close();
+                    return;
+                }
+
+                // 1. Tạo phiên kết nối mới
+                ClientSession session = new ClientSession(tcpClient);
+
+                // 2. Đăng ký phiên vào hệ thống quản lý
+                _sessionManager.AddSession(session);
+
+                // 3. Khi nhận dữ liệu JSON -> chuyển cho PacketRouter xử lý
+                session.OnDataReceived += (sender, jsonLine) =>
+                {
+                    _packetRouter.Route(sender, jsonLine);
+                };
+
+                // 4. Khi client ngắt kết nối -> gỡ khỏi SessionManager và hàng đợi Matchmaking
+                session.OnDisconnected += (sender) =>
+                {
+                    _sessionManager.RemoveSession(sender);
+                    _matchmakingQueue.Remove(sender);
+
+                    // Giảm bộ đếm IP khi ngắt kết nối
+                    _ipConnectionCounts.AddOrUpdate(ipAddress, 0, (key, count) => Math.Max(0, count - 1));
+                };
+
+                // 5. Bắt đầu lắng nghe dữ liệu (chạy cho đến khi client ngắt)
+                await session.StartReceivingAsync();
+            }
+            catch (Exception ex)
             {
-                _sessionManager.RemoveSession(sender);
-                _matchmakingQueue.Remove(sender);
-            };
-
-            // 5. Bắt đầu lắng nghe dữ liệu (chạy cho đến khi client ngắt)
-            await session.StartReceivingAsync();
+                Console.WriteLine($"[LỖI MỞ KẾT NỐI] {ex.Message}");
+                tcpClient.Close();
+            }
         }
 
         // ═══════════════════════════════════════════════

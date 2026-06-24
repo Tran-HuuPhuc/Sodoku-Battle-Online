@@ -23,6 +23,12 @@ namespace SudokuBattle.Server.Network
         private readonly StreamWriter _writer;
         private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1, 1);
 
+        // ─── Chống Spam (Rate Limiting) ───
+        private int _packetCount;
+        private DateTime _lastResetTime;
+        private const int MAX_PACKETS_PER_SECOND = 20;
+        private const int MAX_PACKET_LENGTH = 100 * 1024; 
+
         // ─── Thông tin phiên ───
 
         /// <summary>
@@ -74,10 +80,15 @@ namespace SudokuBattle.Server.Network
         public ClientSession(TcpClient tcpClient)
         {
             _tcpClient = tcpClient;
+            
+            _tcpClient.ReceiveTimeout = 30000; // 30s
+            _tcpClient.SendTimeout = 15000;    // 15s
+
             _stream = tcpClient.GetStream();
 
-            // StreamReader/Writer đọc ghi theo dòng, giải quyết triệt để vấn đề
-            // dính gói (TCP coalescing) và vỡ gói (fragmentation)
+            // Khởi tạo thời gian Rate Limiting
+            _lastResetTime = DateTime.UtcNow;
+
             _reader = new StreamReader(_stream, Encoding.UTF8);
             _writer = new StreamWriter(_stream, Encoding.UTF8)
             {
@@ -105,6 +116,30 @@ namespace SudokuBattle.Server.Network
                     // Bỏ qua các dòng trống
                     if (string.IsNullOrWhiteSpace(jsonLine))
                         continue;
+
+                    // tránh tràn RAM
+                    if (jsonLine.Length > MAX_PACKET_LENGTH)
+                    {
+                        Console.WriteLine($"[BẢO VỆ] {this} gửi gói tin quá lớn ({jsonLine.Length} bytes). Đã ngắt kết nối.");
+                        Disconnect();
+                        break;
+                    }
+
+                    // chống spam
+                    var now = DateTime.UtcNow;
+                    if ((now - _lastResetTime).TotalSeconds >= 1)
+                    {
+                        _packetCount = 0;
+                        _lastResetTime = now;
+                    }
+                    
+                    _packetCount++;
+                    if (_packetCount > MAX_PACKETS_PER_SECOND)
+                    {
+                        Console.WriteLine($"[BẢO VỆ] {this} spam quá {MAX_PACKETS_PER_SECOND} gói/s. Đã ngắt kết nối.");
+                        Disconnect();
+                        break;
+                    }
 
                     // Kích hoạt sự kiện để PacketRouter xử lý
                     OnDataReceived?.Invoke(this, jsonLine);
