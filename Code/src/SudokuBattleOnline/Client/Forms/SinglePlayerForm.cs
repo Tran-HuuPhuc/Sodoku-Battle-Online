@@ -267,15 +267,17 @@ namespace SudokuBattleOnline.Forms
 
                     if (value != 0)
                     {
-                        cells[r, c].Text = value.ToString();
                         cells[r, c].ReadOnly = true;
+                        cells[r, c].Text = value.ToString();
                         cells[r, c].BackColor = Color.LightGray;
+                        cells[r, c].ForeColor = Color.Black;
                     }
                     else
                     {
-                        cells[r, c].Text = "";
                         cells[r, c].ReadOnly = false;
+                        cells[r, c].Text = "";
                         cells[r, c].BackColor = Color.White;
+                        cells[r, c].ForeColor = Color.Blue;
                     }
                 }
             }
@@ -327,14 +329,7 @@ namespace SudokuBattleOnline.Forms
 
                         if (int.TryParse(txt.Text, out int value))
                         {
-                            if (value == currentSolution[captureR, captureC])
-                            {
-                                txt.ForeColor = Color.Blue; // Đúng thì màu xanh
-                            }
-                            else
-                            {
-                                txt.ForeColor = Color.Red; // Sai thì màu đỏ
-                            }
+                            txt.ForeColor = Color.Blue; // User input should just be blue. The Check button handles correctness.
                         }
                     };
 
@@ -354,17 +349,19 @@ namespace SudokuBattleOnline.Forms
             {
                 for (int c = 0; c < 9; c++)
                 {
-                    cells[r, c].Text = puzzle[r, c];
-
                     if (puzzle[r, c] != "")
                     {
                         cells[r, c].ReadOnly = true;
+                        cells[r, c].Text = puzzle[r, c];
                         cells[r, c].BackColor = Color.LightGray;
+                        cells[r, c].ForeColor = Color.Black;
                     }
                     else
                     {
                         cells[r, c].ReadOnly = false;
+                        cells[r, c].Text = "";
                         cells[r, c].BackColor = Color.White;
+                        cells[r, c].ForeColor = Color.Blue;
                     }
                 }
             }
