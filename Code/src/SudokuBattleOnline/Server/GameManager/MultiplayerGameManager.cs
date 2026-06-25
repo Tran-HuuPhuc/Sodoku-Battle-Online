@@ -11,9 +11,16 @@ namespace Server.GameManager
             _room = room;
         }
 
-        public void StartGame(int[,] initialBoard)
+        public void StartGame(
+            int[,] puzzleBoard,
+            int[,] solutionBoard)
         {
-            _room.GameState.Board = initialBoard;
+            _room.PuzzleBoard = puzzleBoard;
+            _room.SolutionBoard = solutionBoard;
+
+            _room.GameState.Board =
+                (int[,])puzzleBoard.Clone();
+
             _room.GameState.Player1Progress = 0;
             _room.GameState.Player2Progress = 0;
             _room.GameState.IsFinished = false;
@@ -30,97 +37,57 @@ namespace Server.GameManager
             _room.IsStarted = true;
         }
 
-        public void UpdateCell(
+        /// <summary>
+        /// Người chơi nhập số
+        /// Tự động kiểm tra đúng/sai
+        /// </summary>
+        public bool SubmitMove(
+            int playerNumber,
             int row,
             int col,
             int value)
         {
-            _room.GameState.Board[row, col] = value;
-        }
+            // Không cho sửa ô gốc
 
-        public void UpdatePlayerProgress(
-            int playerNumber)
-        {
-            int filledCells = CountFilledCells();
+            if (_room.PuzzleBoard[row, col] != 0)
+                return false;
 
-            if (playerNumber == 1)
+            bool isCorrect =
+                _room.SolutionBoard[row, col] == value;
+
+            if (isCorrect)
             {
-                _room.GameState.Player1Progress = filledCells;
-            }
-            else
-            {
-                _room.GameState.Player2Progress = filledCells;
-            }
-        }
+                _room.GameState.Board[row, col] = value;
 
-        public int CalculateProgressPercent(
-            int playerNumber)
-        {
-            int progress =
-                playerNumber == 1
-                ? _room.GameState.Player1Progress
-                : _room.GameState.Player2Progress;
+                AddCorrectMove(playerNumber);
 
-            return (progress * 100) / 81;
-        }
+                CheckAndFinishGame();
 
-        public bool CheckGameFinished()
-        {
-            return _room.GameState.Player1Progress >= 81
-                || _room.GameState.Player2Progress >= 81;
-        }
-
-        public void EndGame()
-        {
-            _room.GameState.IsFinished = true;
-
-            DetermineWinner();
-        }
-
-        public string DetermineWinner()
-        {
-            int p1 = _room.GameState.Player1Progress;
-            int p2 = _room.GameState.Player2Progress;
-
-            if (p1 > p2)
-            {
-                _room.Player1.IsWinner = true;
-                _room.Player2.IsWinner = false;
-
-                return _room.Player1.Username;
+                return true;
             }
 
-            if (p2 > p1)
-            {
-                _room.Player2.IsWinner = true;
-                _room.Player1.IsWinner = false;
+            AddMistake(playerNumber);
 
-                return _room.Player2.Username;
-            }
-
-            _room.Player1.IsWinner = false;
-            _room.Player2.IsWinner = false;
-
-            return "Draw";
+            return false;
         }
 
-        public void AddCorrectMove(
-            int playerNumber)
+        private void AddCorrectMove(int playerNumber)
         {
             if (playerNumber == 1)
             {
                 _room.Player1.Score++;
-                UpdatePlayerProgress(1);
+                _room.GameState.Player1Progress =
+                    CalculateProgress(_room.Player1.Score);
             }
             else
             {
                 _room.Player2.Score++;
-                UpdatePlayerProgress(2);
+                _room.GameState.Player2Progress =
+                    CalculateProgress(_room.Player2.Score);
             }
         }
 
-        public void AddMistake(
-            int playerNumber)
+        private void AddMistake(int playerNumber)
         {
             if (playerNumber == 1)
             {
@@ -132,22 +99,57 @@ namespace Server.GameManager
             }
         }
 
-        private int CountFilledCells()
+        private int CalculateProgress(int score)
         {
-            int count = 0;
+            return (score * 100) / 81;
+        }
 
-            for (int i = 0; i < 9; i++)
+        public bool IsGameFinished()
+        {
+            return _room.GameState.IsFinished;
+        }
+
+        private void CheckAndFinishGame()
+        {
+            if (_room.Player1.Score >= 81
+                || _room.Player2.Score >= 81)
             {
-                for (int j = 0; j < 9; j++)
-                {
-                    if (_room.GameState.Board[i, j] != 0)
-                    {
-                        count++;
-                    }
-                }
+                EndGame();
+            }
+        }
+
+        public void EndGame()
+        {
+            _room.GameState.IsFinished = true;
+
+            Player winner =
+                ResultCalculator.DetermineWinner(
+                    _room.Player1,
+                    _room.Player2);
+
+            if (winner == null)
+            {
+                _room.Player1.IsWinner = false;
+                _room.Player2.IsWinner = false;
+                return;
             }
 
-            return count;
+            _room.Player1.IsWinner =
+                winner == _room.Player1;
+
+            _room.Player2.IsWinner =
+                winner == _room.Player2;
+        }
+
+        public string GetWinnerName()
+        {
+            if (_room.Player1.IsWinner)
+                return _room.Player1.Username;
+
+            if (_room.Player2.IsWinner)
+                return _room.Player2.Username;
+
+            return "Draw";
         }
     }
 }
