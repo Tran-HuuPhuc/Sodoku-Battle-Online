@@ -11,41 +11,73 @@ namespace SudokuBattleOnline.Forms
         public LoginForm()
         {
             Text = "Đăng nhập";
-            Size = new Size(500, 380);
+            Size = new Size(600, 450);
             StartPosition = FormStartPosition.CenterScreen;
+            AutoScaleMode = AutoScaleMode.Font;
+
+            // Create outer container panel
+            Panel containerPanel = new Panel();
+            containerPanel.AutoSize = true;
+            containerPanel.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            containerPanel.Dock = DockStyle.None;
+            containerPanel.Anchor = AnchorStyles.None;
 
             Label lblTitle = new Label();
             lblTitle.Text = "SUDOKU BATTLE ONLINE";
             lblTitle.Font = new Font("Arial", 16, FontStyle.Bold);
             lblTitle.AutoSize = true;
-            lblTitle.Location = new Point(80, 30);
+            lblTitle.Location = new Point(0, 0);
+            containerPanel.Controls.Add(lblTitle);
 
             Label lblServer = new Label();
             lblServer.Text = $"Server: {AppSession.ServerIp}:{AppSession.ServerPort}";
-            lblServer.Location = new Point(170, 70);
             lblServer.AutoSize = true;
+            lblServer.Location = new Point(0, 30);
+            containerPanel.Controls.Add(lblServer);
 
             Label lblUser = new Label();
             lblUser.Text = "Username";
-            lblUser.Location = new Point(60, 115);
+            lblUser.AutoSize = true;
+            lblUser.Location = new Point(0, 65);
+            containerPanel.Controls.Add(lblUser);
 
             TextBox txtUser = new TextBox();
-            txtUser.Location = new Point(170, 115);
             txtUser.Width = 200;
+            txtUser.Location = new Point(90, 65);
+            containerPanel.Controls.Add(txtUser);
 
             Label lblPass = new Label();
             lblPass.Text = "Password";
-            lblPass.Location = new Point(60, 165);
+            lblPass.AutoSize = true;
+            lblPass.Location = new Point(0, 95);
+            containerPanel.Controls.Add(lblPass);
 
             TextBox txtPass = new TextBox();
-            txtPass.Location = new Point(170, 165);
             txtPass.Width = 200;
             txtPass.PasswordChar = '*';
+            txtPass.Location = new Point(90, 95);
+            containerPanel.Controls.Add(txtPass);
 
             Button btnLogin = new Button();
             btnLogin.Text = "Đăng nhập";
-            btnLogin.Location = new Point(100, 250);
-            btnLogin.Size = new Size(120, 40);
+            btnLogin.Size = new Size(95, 40);
+            btnLogin.Location = new Point(0, 140);
+            containerPanel.Controls.Add(btnLogin);
+
+            Button btnRegister = new Button();
+            btnRegister.Text = "Đăng ký";
+            btnRegister.Size = new Size(95, 40);
+            btnRegister.Location = new Point(105, 140);
+            containerPanel.Controls.Add(btnRegister);
+
+            this.Controls.Add(containerPanel);
+
+            // Center container on form resize
+            this.Resize += (s, e) =>
+            {
+                containerPanel.Left = (this.ClientSize.Width - containerPanel.Width) / 2;
+                containerPanel.Top = (this.ClientSize.Height - containerPanel.Height) / 2;
+            };
 
             btnLogin.Click += async (s, e) =>
             {
@@ -106,11 +138,6 @@ namespace SudokuBattleOnline.Forms
                 }
             };
 
-            Button btnRegister = new Button();
-            btnRegister.Text = "Đăng ký";
-            btnRegister.Location = new Point(250, 250);
-            btnRegister.Size = new Size(120, 40);
-
             btnRegister.Click += (s, e) =>
             {
                 using RegisterForm register = new RegisterForm();
@@ -118,15 +145,18 @@ namespace SudokuBattleOnline.Forms
             };
 
             AcceptButton = btnLogin;
+        }
 
-            Controls.Add(lblTitle);
-            Controls.Add(lblServer);
-            Controls.Add(lblUser);
-            Controls.Add(txtUser);
-            Controls.Add(lblPass);
-            Controls.Add(txtPass);
-            Controls.Add(btnLogin);
-            Controls.Add(btnRegister);
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            // Center container on initial show
+            if (this.Controls.Count > 0)
+            {
+                Panel containerPanel = (Panel)this.Controls[0];
+                containerPanel.Left = (this.ClientSize.Width - containerPanel.Width) / 2;
+                containerPanel.Top = (this.ClientSize.Height - containerPanel.Height) / 2;
+            }
         }
 
         private void LoginForm_Load(object sender, EventArgs e)
