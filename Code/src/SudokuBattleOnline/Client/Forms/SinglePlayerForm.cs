@@ -21,6 +21,8 @@ namespace SudokuBattleOnline.Forms
         private int remainingSeconds;
         private int totalLimitSeconds;
         private bool gameStarted = false;
+        private int checkCount = 0;          // tổng check
+        private const int MaxChecks = 3;
         private readonly SudokuGenerator sudokuGenerator = new();
 
         private int[,] currentPuzzle = new int[9, 9];
@@ -141,13 +143,24 @@ namespace SudokuBattleOnline.Forms
             };
 
             Button btnCheck = new Button();
-            btnCheck.Text = "Check";
+            btnCheck.Text = $"Check ({MaxChecks - checkCount} lần)";
             btnCheck.Location = new Point(500, 170);
             btnCheck.Size = new Size(120, 40);
 
             btnCheck.Click += async (s, e) =>
             {
-                gameTimer.Stop(); // Tạm dừng đếm thời gian khi hiển thị thông báo kiểm tra
+                if (checkCount >= MaxChecks)
+                {
+                    MessageBox.Show("Bạn đã hết lượt Check!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                checkCount++;
+                int remaining = MaxChecks - checkCount;
+                btnCheck.Text = remaining > 0 ? $"Check ({remaining} lần)" : "Check (hết)";
+                if (remaining == 0) btnCheck.Enabled = false;
+
+                gameTimer.Stop(); 
 
                 int emptyCells = 0;
                 int wrongCells = 0;
@@ -176,7 +189,7 @@ namespace SudokuBattleOnline.Forms
                     string msg = $"Bảng Sudoku chưa hoàn thành.\n- Ô trống: {emptyCells}\n- Ô sai: {wrongCells}";
                     MessageBox.Show(msg, "Kết quả kiểm tra", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     
-                    gameTimer.Start(); // Tiếp tục đếm thời gian
+                    gameTimer.Start(); 
                     return; 
                 }
 
