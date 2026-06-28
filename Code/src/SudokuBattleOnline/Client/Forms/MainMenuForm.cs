@@ -61,7 +61,41 @@ namespace SudokuBattleOnline.Forms
             // Online Mode
             Button btnOnline = new Button { Text = "Online Mode" };
             StyleMenuButton(btnOnline, 160);
-            btnOnline.Click += (s, e) => { ShowFormInPanel(new MultiplayerGameForm()); };
+            btnOnline.Click += async (s, e) => 
+            { 
+                if (!SudokuBattleOnline.Client.AppSession.IsLoggedIn)
+                {
+                    MessageBox.Show("Bạn cần đăng nhập để chơi chế độ Online.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                
+                btnOnline.Text = "Đang tìm trận...";
+                btnOnline.Enabled = false;
+
+                // Send FindMatchPacket
+                await SudokuBattleOnline.Client.AppSession.SendPacketAsync(new SudokuBattleOnline.Shared.Packets.FindMatchPacket());
+
+                Action<SudokuBattleOnline.Shared.Packets.BasePacket, string> onGameStart = null;
+                onGameStart = (basePacket, rawJson) =>
+                {
+                    if (basePacket.PacketType == "GAME_START")
+                    {
+                        var startPacket = System.Text.Json.JsonSerializer.Deserialize<SudokuBattleOnline.Shared.Packets.GameStartPacket>(rawJson);
+                        if (startPacket != null)
+                        {
+                            SudokuBattleOnline.Client.AppSession.PacketReceived -= onGameStart;
+                            this.Invoke((MethodInvoker)delegate
+                            {
+                                btnOnline.Text = "Online Mode";
+                                btnOnline.Enabled = true;
+                                ShowFormInPanel(new MultiplayerGameForm(startPacket));
+                            });
+                        }
+                    }
+                };
+
+                SudokuBattleOnline.Client.AppSession.PacketReceived += onGameStart;
+            };
 
             // Your Profile
             Button btnProfile = new Button { Text = "Your Profile" };

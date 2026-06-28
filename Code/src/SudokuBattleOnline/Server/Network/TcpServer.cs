@@ -61,9 +61,10 @@ namespace SudokuBattle.Server.Network
             // Khởi tạo các module theo đúng thứ tự phụ thuộc
             _sessionManager = new SessionManager();
             _matchmakingQueue = new SudokuBattle.Server.Matchmaking.MatchmakingQueue();
-            _matchmakingManager = new SudokuBattle.Server.Matchmaking.MatchmakingManager(_matchmakingQueue);
-
+            
             var roomManager = new RoomManager();
+            _matchmakingManager = new SudokuBattle.Server.Matchmaking.MatchmakingManager(_matchmakingQueue, roomManager);
+            
             _packetHandler = new PacketHandler(_sessionManager, _matchmakingQueue, roomManager);
             _packetRouter = new PacketRouter(_packetHandler);
         }

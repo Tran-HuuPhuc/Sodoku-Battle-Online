@@ -3,6 +3,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using SudokuBattle.Server.Network;
 using SudokuBattleOnline.Shared.Packets;
+using SudokuBattle.Server.Rooms;
+using Server.GameManager;
+using Shared.Enums;
 
 namespace SudokuBattle.Server.Matchmaking
 {
@@ -12,11 +15,13 @@ namespace SudokuBattle.Server.Matchmaking
     public class MatchmakingManager
     {
         private readonly MatchmakingQueue _queue;
+        private readonly RoomManager _roomManager;
         private bool _isRunning;
 
-        public MatchmakingManager(MatchmakingQueue queue)
+        public MatchmakingManager(MatchmakingQueue queue, RoomManager roomManager)
         {
             _queue = queue;
+            _roomManager = roomManager;
         }
 
         /// <summary>
@@ -56,29 +61,38 @@ namespace SudokuBattle.Server.Matchmaking
 
                             if (p1Connected && p2Connected)
                             {
-                                // ghép thành công và tạo 1 mã phòng tạm thời dài 8 ký tự
-                                string roomId = Guid.NewGuid().ToString("N")[..8];
-                                player1.CurrentRoomId = roomId;
-                                player2.CurrentRoomId = roomId;
+                                // Tạo phòng 
+                                var roomName = $"Rank Match: {player1.Username} vs {player2.Username}";
+                                var room = _roomManager.CreateRoom(roomName, 2);
+                                string roomId = room.Id;
+
+                                room.AddMember(player1);
+                                room.AddMember(player2);
+                                room.IsGameStarted = true;
 
                                 Console.WriteLine($"[MATCHMAKING] Đã ghép cặp '{player1.Username}' và '{player2.Username}' vào phòng {roomId}");
 
-                                // gửi thông báo ghép thành công cho player 1
-                                await player1.SendPacketAsync(new MatchFoundPacket
+                                // Khởi tạo GameManager và sinh đề bài (Mặc định Medium cho Online)
+                                var gameManager = new GameManager();
+                                var (puzzle, solution) = gameManager.GeneratePuzzleWithSolution(Difficulty.Medium);
+                                int[] flatBoard = gameManager.FlattenBoard(puzzle);
+
+                                // Gửi GameStartPacket cho player 1
+                                await player1.SendPacketAsync(new GameStartPacket
                                 {
                                     RoomId = roomId,
-                                    OpponentUsername = player2.Username ?? "Unknown",
-                                    Success = true,
-                                    Message = "Đã tìm thấy đối thủ!"
+                                    Board = flatBoard,
+                                    TimeLimitSeconds = 300,
+                                    OpponentUsername = player2.Username ?? "Unknown"
                                 });
 
-                                // gửi thông báo ghép thành công cho player 2
-                                await player2.SendPacketAsync(new MatchFoundPacket
+                                // Gửi GameStartPacket cho player 2
+                                await player2.SendPacketAsync(new GameStartPacket
                                 {
                                     RoomId = roomId,
-                                    OpponentUsername = player1.Username ?? "Unknown",
-                                    Success = true,
-                                    Message = "Đã tìm thấy đối thủ!"
+                                    Board = flatBoard,
+                                    TimeLimitSeconds = 300,
+                                    OpponentUsername = player1.Username ?? "Unknown"
                                 });
                             }
                             else
