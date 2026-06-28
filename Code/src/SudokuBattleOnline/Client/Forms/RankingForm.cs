@@ -1,4 +1,4 @@
-﻿using SudokuBattleOnline.Client;
+using SudokuBattleOnline.Client;
 using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Drawing;

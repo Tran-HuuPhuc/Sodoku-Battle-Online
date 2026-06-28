@@ -18,10 +18,13 @@ namespace SudokuBattle.Server.Matchmaking
         private readonly RoomManager _roomManager;
         private bool _isRunning;
 
-        public MatchmakingManager(MatchmakingQueue queue, RoomManager roomManager)
+        private readonly PacketHandler _packetHandler;
+
+        public MatchmakingManager(MatchmakingQueue queue, RoomManager roomManager, PacketHandler packetHandler)
         {
             _queue = queue;
             _roomManager = roomManager;
+            _packetHandler = packetHandler;
         }
 
         /// <summary>
@@ -77,13 +80,29 @@ namespace SudokuBattle.Server.Matchmaking
                                 var (puzzle, solution) = gameManager.GeneratePuzzleWithSolution(Difficulty.Medium);
                                 int[] flatBoard = gameManager.FlattenBoard(puzzle);
 
+                                // Khởi tạo GameRoom và MultiplayerGameManager
+                                var gameRoom = new GameRoom
+                                {
+                                    RoomId = roomId,
+                                    Player1 = new global::Shared.Models.Player { Username = player1.Username ?? "Player 1", Score = 0, Mistakes = 0 },
+                                    Player2 = new global::Shared.Models.Player { Username = player2.Username ?? "Player 2", Score = 0, Mistakes = 0 },
+                                    PuzzleBoard = puzzle,
+                                    SolutionBoard = solution
+                                };
+                                var mpGameManager = new MultiplayerGameManager(gameRoom);
+                                mpGameManager.StartGame(puzzle, solution);
+
+                                room.GameRoom = gameRoom;
+                                room.GameManager = mpGameManager;
+
                                 // Gửi GameStartPacket cho player 1
                                 await player1.SendPacketAsync(new GameStartPacket
                                 {
                                     RoomId = roomId,
                                     Board = flatBoard,
-                                    TimeLimitSeconds = 300,
-                                    OpponentUsername = player2.Username ?? "Unknown"
+                                    TimeLimitSeconds = 600,
+                                    OpponentUsername = player2.Username ?? "Unknown",
+                                    Player1Username = player1.Username ?? "Unknown"
                                 });
 
                                 // Gửi GameStartPacket cho player 2
@@ -91,9 +110,12 @@ namespace SudokuBattle.Server.Matchmaking
                                 {
                                     RoomId = roomId,
                                     Board = flatBoard,
-                                    TimeLimitSeconds = 300,
-                                    OpponentUsername = player1.Username ?? "Unknown"
+                                    TimeLimitSeconds = 600,
+                                    OpponentUsername = player1.Username ?? "Unknown",
+                                    Player1Username = player1.Username ?? "Unknown"
                                 });
+
+                                _packetHandler.StartGameTimeoutMonitor(room);
                             }
                             else
                             {
