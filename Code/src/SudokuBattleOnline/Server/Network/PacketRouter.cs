@@ -81,6 +81,10 @@ namespace SudokuBattle.Server.Network
                             await _handler.HandleLeaveRoomAsync(session, leaveRoomPacket);
                         break;
 
+                    case "GET_ROOM_LIST":
+                        await _handler.HandleGetRoomListAsync(session);
+                        break;
+
                     // ─── Trận đấu ───
                     case "FIND_MATCH":
                         var findMatchPacket = JsonSerializer.Deserialize<FindMatchPacket>(jsonLine);

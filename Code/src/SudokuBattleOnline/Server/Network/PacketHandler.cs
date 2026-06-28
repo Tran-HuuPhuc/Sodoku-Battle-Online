@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Server.Database;
 using Server.Models;
 using Server.Services;
 using Shared.Enums;
-using SudokuBattleOnline.Shared.Packets;
 using SudokuBattle.Server.Matchmaking;
 using SudokuBattle.Server.Rooms;
+using SudokuBattle.Shared.Models;
+using SudokuBattleOnline.Shared.Packets;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SudokuBattle.Server.Network
 {
@@ -184,6 +185,32 @@ namespace SudokuBattle.Server.Network
         //  PHÒNG CHƠI (Room Management)
         // ═══════════════════════════════════════════════
 
+        public async Task HandleGetRoomListAsync(ClientSession session)
+        {
+            if (!await RequireAuthAsync(session)) return;
+
+            Console.WriteLine($"[ROOM] {session} yêu cầu danh sách phòng.");
+
+            var rooms = _roomManager.GetAllRooms()
+                .Select(r => new RoomInfo
+                {
+                    RoomId = r.Id,
+                    RoomName = r.Name,
+                    CurrentPlayers = r.Members.Length,
+                    MaxPlayers = r.MaxPlayers,
+                    IsGameStarted = r.IsGameStarted
+                })
+                .ToList();
+
+            await session.SendPacketAsync(new RoomListPacket
+            {
+                PacketType = "ROOM_LIST_RESULT",
+                Success = true,
+                Message = $"Có {rooms.Count} phòng đang mở.",
+                Rooms = rooms
+            });
+        }
+
         public async Task HandleCreateRoomAsync(ClientSession session, CreateRoomPacket packet)
         {
             if (!await RequireAuthAsync(session)) return;
@@ -202,6 +229,7 @@ namespace SudokuBattle.Server.Network
             if (success)
             {
                 Console.WriteLine($"[ROOM] {session} đã tạo và vào phòng {room.Id} ('{room.Name}').");
+                await room.BroadcastRoomUpdateAsync();
             }
         }
 
@@ -234,12 +262,8 @@ namespace SudokuBattle.Server.Network
 
             if (success)
             {
-                await room.BroadcastExceptAsync(new ChatPacket
-                {
-                    PacketType = "ROOM_SYSTEM",
-                    Content = $"{session.Username ?? session.SessionId} đã vào phòng."
-                }, session.SessionId);
                 Console.WriteLine($"[ROOM] {session} join phòng {room.Id}.");
+                await room.BroadcastRoomUpdateAsync();
             }
 
         }
@@ -271,12 +295,11 @@ namespace SudokuBattle.Server.Network
 
             if (success)
             {
-                await room.BroadcastAsync(new ChatPacket
-                {
-                    PacketType = "ROOM_SYSTEM",
-                    Content = $"{session.Username ?? session.SessionId} đã rời phòng."
-                });
                 Console.WriteLine($"[ROOM] {session} rời phòng {room.Id}.");
+                if (room.Members.Length == 0)
+                    _roomManager.RemoveRoom(packet.RoomId);
+                else
+                    await room.BroadcastRoomUpdateAsync();
             }
         }
 

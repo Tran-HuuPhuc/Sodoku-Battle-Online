@@ -11,18 +11,18 @@ namespace SudokuBattle.Server.Rooms
     {
         public string Id { get; }
         public string Name { get; set; }
-        public int MaxPlayers { get; set; } = 2; // Mặc định game Sudoku là 2 người đấu với nhau
+        public int MaxPlayers { get; set; } = 2;
         public bool IsGameStarted { get; set; } = false;
 
-        // Lưu trữ danh sách kết nối thực tế của các Client trong phòng
         private readonly ConcurrentDictionary<string, ClientSession> _members = new();
         private readonly object _sync = new();
 
-        // Trả về mảng danh sách người chơi hiện tại
         public ClientSession[] Members => _members.Values.ToArray();
 
-        // Xác định ai là chủ phòng (lấy người đầu tiên tham gia)
         public ClientSession Host { get; private set; }
+
+        public event Action<Room>? OnRoomEmpty;
+
 
         public Room(string id, string name, int maxPlayers = 2)
         {
@@ -47,7 +47,6 @@ namespace SudokuBattle.Server.Rooms
                 {
                     session.CurrentRoomId = Id;
 
-                    // Đăng ký event để tự remove khi disconnect
                     session.OnDisconnected += OnSessionDisconnected;
 
                     if (Host == null)
@@ -69,7 +68,6 @@ namespace SudokuBattle.Server.Rooms
             {
                 if (_members.TryRemove(session.SessionId, out _))
                 {
-                    // Unsubscribe để tránh giữ reference
                     session.OnDisconnected -= OnSessionDisconnected;
 
                     session.CurrentRoomId = null;
@@ -92,7 +90,17 @@ namespace SudokuBattle.Server.Rooms
         {
             try
             {
-                RemoveMember(session);
+                var(removed, _) = RemoveMember(session);
+                if (!removed) return;
+
+                if (_members.IsEmpty)
+                {
+                    OnRoomEmpty?.Invoke(this);
+                }
+                else
+                {
+                    Task.Run(() => BroadcastRoomUpdateAsync());
+                }
             }
             catch (Exception ex)
             {
@@ -100,7 +108,21 @@ namespace SudokuBattle.Server.Rooms
             }
         }
 
-        // Gửi gói tin tới tất cả thành viên trong phòng
+        public async Task BroadcastRoomUpdateAsync()
+        {
+            var packet = new RoomUpdatePacket
+            {
+                RoomId = Id,
+                RoomName = Name,
+                Members = Members.Select(m => m.Username ?? m.SessionId).ToList(),
+                HostUsername = Host?.Username ?? string.Empty,
+                MaxPlayers = MaxPlayers,
+                IsGameStarted = IsGameStarted
+            };
+
+            await BroadcastAsync(packet);
+        }
+
         public async Task BroadcastAsync(BasePacket packet)
         {
             var targets = Members;
