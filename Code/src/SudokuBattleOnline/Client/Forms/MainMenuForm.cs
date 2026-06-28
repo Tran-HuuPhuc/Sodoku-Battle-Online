@@ -61,24 +61,71 @@ namespace SudokuBattleOnline.Forms
             // Online Mode
             Button btnOnline = new Button { Text = "Online Mode" };
             StyleMenuButton(btnOnline, 160);
-            btnOnline.Click += async (s, e) => 
-            { 
+            btnOnline.Click += async (s, e) =>
+            {
                 if (!SudokuBattleOnline.Client.AppSession.IsLoggedIn)
                 {
                     MessageBox.Show("Bạn cần đăng nhập để chơi chế độ Online.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-                
-                btnOnline.Text = "Đang tìm trận...";
-                btnOnline.Enabled = false;
 
-                // Send FindMatchPacket
+                // --- Tạo Overlay Panel "Đang tìm trận" ---
+                Panel overlayPanel = new Panel();
+                overlayPanel.Size = new Size(380, 180);
+                overlayPanel.BackColor = Color.White;
+                overlayPanel.BorderStyle = BorderStyle.FixedSingle;
+
+                // Căn giữa trong contentPanel
+                overlayPanel.Location = new Point(
+                    (contentPanel.Width - overlayPanel.Width) / 2,
+                    (contentPanel.Height - overlayPanel.Height) / 2
+                );
+
+                // Tiêu đề
+                Label lblSearchTitle = new Label();
+                lblSearchTitle.Text = "🎮 Online Mode";
+                lblSearchTitle.Font = new Font("Segoe UI", 13, FontStyle.Bold);
+                lblSearchTitle.ForeColor = Color.FromArgb(41, 53, 65);
+                lblSearchTitle.AutoSize = true;
+                lblSearchTitle.Location = new Point(20, 18);
+
+                // Trạng thái
+                Label lblStatus = new Label();
+                lblStatus.Text = "⏳ Đang tìm đối thủ...";
+                lblStatus.Font = new Font("Segoe UI", 10, FontStyle.Regular);
+                lblStatus.ForeColor = Color.Gray;
+                lblStatus.AutoSize = true;
+                lblStatus.Location = new Point(20, 60);
+
+                // Nút Hủy
+                Button btnCancel = new Button();
+                btnCancel.Text = "Hủy tìm trận";
+                btnCancel.Size = new Size(160, 45);
+                btnCancel.Location = new Point(110, 110);
+                btnCancel.FlatStyle = FlatStyle.Flat;
+                btnCancel.BackColor = Color.FromArgb(231, 76, 60);
+                btnCancel.ForeColor = Color.White;
+                btnCancel.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+                btnCancel.FlatAppearance.BorderSize = 0;
+                btnCancel.Cursor = Cursors.Hand;
+
+                overlayPanel.Controls.Add(lblSearchTitle);
+                overlayPanel.Controls.Add(lblStatus);
+                overlayPanel.Controls.Add(btnCancel);
+
+                // Hiển thị overlay lên contentPanel
+                contentPanel.Controls.Add(overlayPanel);
+                overlayPanel.BringToFront();
+
+                // --- Gửi lệnh tìm trận ---
                 await SudokuBattleOnline.Client.AppSession.SendPacketAsync(new SudokuBattleOnline.Shared.Packets.FindMatchPacket());
+
+                bool searching = true;
 
                 Action<SudokuBattleOnline.Shared.Packets.BasePacket, string> onGameStart = null;
                 onGameStart = (basePacket, rawJson) =>
                 {
-                    if (basePacket.PacketType == "GAME_START")
+                    if (basePacket.PacketType == "GAME_START" && searching)
                     {
                         var startPacket = System.Text.Json.JsonSerializer.Deserialize<SudokuBattleOnline.Shared.Packets.GameStartPacket>(rawJson);
                         if (startPacket != null)
@@ -86,12 +133,21 @@ namespace SudokuBattleOnline.Forms
                             SudokuBattleOnline.Client.AppSession.PacketReceived -= onGameStart;
                             this.Invoke((MethodInvoker)delegate
                             {
-                                btnOnline.Text = "Online Mode";
-                                btnOnline.Enabled = true;
+                                contentPanel.Controls.Remove(overlayPanel);
+                                overlayPanel.Dispose();
                                 ShowFormInPanel(new MultiplayerGameForm(startPacket));
                             });
                         }
                     }
+                };
+
+                // Nút Hủy: đóng overlay, hủy lắng nghe
+                btnCancel.Click += (cs, ce) =>
+                {
+                    searching = false;
+                    SudokuBattleOnline.Client.AppSession.PacketReceived -= onGameStart;
+                    contentPanel.Controls.Remove(overlayPanel);
+                    overlayPanel.Dispose();
                 };
 
                 SudokuBattleOnline.Client.AppSession.PacketReceived += onGameStart;
