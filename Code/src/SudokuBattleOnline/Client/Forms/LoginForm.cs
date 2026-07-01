@@ -60,7 +60,7 @@ namespace SudokuBattleOnline.Forms
                 Font      = new Font("Segoe UI Emoji", 42, FontStyle.Regular),
                 ForeColor = UITheme.Accent,
                 AutoSize  = false,
-                Size      = new Size(450, 80),
+                Size      = new Size(450, 100),
                 Location  = new Point(0, 100),
                 TextAlign = ContentAlignment.MiddleCenter
             };
@@ -73,8 +73,8 @@ namespace SudokuBattleOnline.Forms
                 Font      = new Font(UITheme.FontFamily, 28, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
                 AutoSize  = false,
-                Size      = new Size(450, 42),
-                Location  = new Point(0, 190),
+                Size      = new Size(450, 60),
+                Location  = new Point(0, 30),
                 TextAlign = ContentAlignment.MiddleCenter
             };
             leftPanel.Controls.Add(lblGameName);

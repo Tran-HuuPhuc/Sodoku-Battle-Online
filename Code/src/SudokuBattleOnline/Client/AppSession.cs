@@ -1,10 +1,11 @@
-using Client.Network;
+﻿using Client.Network;
 using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.Windows.Forms;
+using Shared.Constants;
 
 namespace SudokuBattleOnline.Client
 {
@@ -13,8 +14,8 @@ namespace SudokuBattleOnline.Client
     /// </summary>
     public static class AppSession
     {
-        public static string ServerIp { get; set; } = "127.0.0.1";
-        public static int ServerPort { get; set; } = 8888;
+        public static string ServerIp { get; set; } = NetworkConstants.SERVER_IP;
+        public static int ServerPort { get; set; } = NetworkConstants.SERVER_PORT;
         public static string CurrentUsername { get; set; } = string.Empty;
 
         public static ClientConnection Connection { get; } = new ClientConnection();
@@ -302,6 +303,9 @@ namespace SudokuBattleOnline.Client
             dgv.EnableHeadersVisualStyles = false;
             dgv.RowHeadersVisible = false;
             dgv.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            dgv.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            dgv.RowTemplate.Height = 34;
+            dgv.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
         }
 
         /// <summary>Style cho ListView dark theme.</summary>
