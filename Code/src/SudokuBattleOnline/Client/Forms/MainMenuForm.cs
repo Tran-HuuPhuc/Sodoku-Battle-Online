@@ -1,4 +1,4 @@
-using SudokuBattleOnline.Client;
+﻿using SudokuBattleOnline.Client;
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -50,32 +50,63 @@ namespace SudokuBattleOnline.Forms
 
             var lblLogo = new Label
             {
-                Text = "⊞",
-                Font = new Font("Segoe UI", 36, FontStyle.Bold),
+                Text = "▦",
+                Font = new Font("Segoe UI Symbol", 34, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
-                Location = new Point(20, 16),
-                AutoSize = true
+                Location = new Point(22, 18),
+                Size = new Size(50, 54),
+                TextAlign = ContentAlignment.MiddleCenter
             };
 
-            var lblBrand = new Label
+            var lblBrandTop = new Label
             {
-                Text = "SUDOKU\nBATTLE",
-                Font = new Font("Segoe UI", 14, FontStyle.Bold),
+                Text = "SUDOKU",
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 ForeColor = UITheme.TextPrimary,
-                Location = new Point(72, 18),
-                AutoSize = true
+                Location = new Point(90, 25),
+                Size = new Size(135, 25),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            var lblBrandBottom = new Label
+            {
+                Text = "BATTLE",
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                ForeColor = UITheme.TextPrimary,
+                Location = new Point(90, 50),
+                Size = new Size(135, 25),
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             var lblTagline = new Label
             {
-                Text = "Online  •  Real-time",
-                Font = new Font("Segoe UI", 7, FontStyle.Regular),
+                Text = "Online · Real-time",
+                Font = new Font("Segoe UI", 8, FontStyle.Regular),
                 ForeColor = UITheme.TextMuted,
-                Location = new Point(73, 82),
-                AutoSize = true
+                Location = new Point(90, 80),
+                Size = new Size(130, 18),
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
-            brandPanel.Controls.AddRange(new Control[] { lblLogo, lblBrand, lblTagline });
+            brandPanel.Controls.AddRange(new Control[]
+            {
+                lblLogo,
+                lblBrandTop,
+                lblBrandBottom,
+                lblTagline
+            });
+
+            //var lblTagline = new Label
+            //{
+            //    Text = "Online · Real-time",
+            //    Font = new Font("Segoe UI", 8, FontStyle.Regular),
+            //    ForeColor = UITheme.TextMuted,
+            //    Location = new Point(88, 76),
+            //    Size = new Size(130, 18),
+            //    TextAlign = ContentAlignment.MiddleLeft
+            //};
+
+            //brandPanel.Controls.AddRange(new Control[] { lblLogo, lblBrand, lblTagline });
 
             // Divider
             var sep1 = new Panel { Dock = DockStyle.Top, Height = 1, BackColor = UITheme.Border, Top = 120 };
@@ -90,13 +121,13 @@ namespace SudokuBattleOnline.Forms
                 BackColor = UITheme.BgDeep
             };
 
-            var btnSingle   = MakeNavButton("🎯  Chơi Một Mình",   "SinglePlayer");
-            var btnOnline   = MakeNavButton("⚔   Chơi Online",      "Online");
-            var btnRooms    = MakeNavButton("🏠  Phòng Tùy Chỉnh", "CustomRooms");
-            var btnProfile  = MakeNavButton("👤  Hồ Sơ",            "Profile");
-            var btnRanking  = MakeNavButton("🏆  Bảng Xếp Hạng",   "Ranking");
-            var btnHistory  = MakeNavButton("📋  Lịch Sử Đấu",     "History");
-            var btnBest     = MakeNavButton("⭐  Thành Tích",        "BestScore");
+            var btnSingle   = MakeNavButton("  Chơi Đơn",   "SinglePlayer");
+            var btnOnline   = MakeNavButton("  Chơi Online",      "Online");
+            var btnRooms    = MakeNavButton("  Phòng Tùy Chỉnh", "CustomRooms");
+            var btnProfile  = MakeNavButton("  Hồ Sơ",            "Profile");
+            var btnRanking  = MakeNavButton("  Bảng Xếp Hạng",   "Ranking");
+            var btnHistory  = MakeNavButton("  Lịch Sử Đấu",     "History");
+            var btnBest     = MakeNavButton("  Thành Tích",        "BestScore");
 
             btnSingle.Click  += (s, e) => { SetActiveNav(btnSingle);  ShowFormInPanel(new SinglePlayerForm()); };
             btnRooms.Click   += (s, e) => { SetActiveNav(btnRooms);   ShowFormInPanel(new LobbyForm()); };
@@ -132,8 +163,8 @@ namespace SudokuBattleOnline.Forms
             lblUserInfo = new Label
             {
                 Text = SudokuBattleOnline.Client.AppSession.IsLoggedIn
-                    ? $"👤  {SudokuBattleOnline.Client.AppSession.CurrentUsername}"
-                    : "👤  Chưa đăng nhập",
+                    ? $"User: {SudokuBattleOnline.Client.AppSession.CurrentUsername}"
+                    : "User: Chưa đăng nhập",
                 Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
                 Location = new Point(14, 8),
@@ -185,7 +216,7 @@ namespace SudokuBattleOnline.Forms
                 BackColor = Color.Transparent,
                 FlatStyle = FlatStyle.Flat,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(20, 0, 0, 0),
+                Padding = new Padding(26, 0, 0, 0),
                 Cursor = Cursors.Hand,
                 Margin = new Padding(0, 0, 0, 2)
             };
@@ -216,93 +247,151 @@ namespace SudokuBattleOnline.Forms
         {
             contentPanel.Controls.Clear();
 
-            var container = new Panel { Dock = DockStyle.Fill, BackColor = UITheme.BgMain };
+            var container = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = UITheme.BgMain
+            };
+
+            var centerPanel = new Panel
+            {
+                Size = new Size(860, 430),
+                BackColor = UITheme.BgMain
+            };
 
             var lblWelcome = new Label
             {
-                Text = "⊞  Sudoku Battle Online",
-                Font = new Font("Segoe UI", 28, FontStyle.Bold),
+                Text = "Sudoku Battle Online",
+                Font = new Font("Segoe UI", 30, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
-                AutoSize = true
+                Location = new Point(0, 30),
+                Size = new Size(860, 60),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
             };
 
             string name = SudokuBattleOnline.Client.AppSession.CurrentUsername ?? "Bạn";
+
             var lblGreet = new Label
             {
                 Text = $"Chào mừng, {name}! Chọn chế độ chơi từ thanh menu bên trái.",
-                Font = new Font("Segoe UI", 12),
+                Font = new Font("Segoe UI", 12, FontStyle.Regular),
                 ForeColor = UITheme.TextSecondary,
-                AutoSize = true
+                Location = new Point(0, 95),
+                Size = new Size(860, 34),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
             };
 
-            // Stats cards
-            var cardsPanel = new FlowLayoutPanel
+            var cardsPanel = new Panel
             {
-                AutoSize = true,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false
+                Location = new Point(0, 185),
+                Size = new Size(860, 150),
+                BackColor = UITheme.BgMain
             };
 
-            cardsPanel.Controls.Add(MakeInfoCard("⚔", "1v1 Real-time", "Đấu trực tuyến"));
-            cardsPanel.Controls.Add(MakeInfoCard("🧩", "Multi-Difficulty", "Dễ / Trung / Khó"));
-            cardsPanel.Controls.Add(MakeInfoCard("🏆", "ELO Rating", "Bảng xếp hạng"));
-            cardsPanel.Controls.Add(MakeInfoCard("🔒", "Anti-Cheat", "Server validation"));
+            var card1 = MakeInfoCard("1v1", "Real-time", "Đấu trực tuyến");
+            card1.Location = new Point(20, 0);
 
-            container.Controls.Add(cardsPanel);
-            container.Controls.Add(lblGreet);
-            container.Controls.Add(lblWelcome);
+            var card2 = MakeInfoCard("3x", "Multi-Difficulty", "Dễ / Trung / Khó");
+            card2.Location = new Point(230, 0);
 
-            // Auto-layout
+            var card3 = MakeInfoCard("ELO", "Ranking", "Bảng xếp hạng");
+            card3.Location = new Point(440, 0);
+
+            var card4 = MakeInfoCard("SV", "Anti-Cheat", "Server validation");
+            card4.Location = new Point(650, 0);
+
+            cardsPanel.Controls.Add(card1);
+            cardsPanel.Controls.Add(card2);
+            cardsPanel.Controls.Add(card3);
+            cardsPanel.Controls.Add(card4);
+
+            var lblHint = new Label
+            {
+                Text = "Hệ thống hỗ trợ chơi đơn, chơi online, lưu lịch sử đấu và bảng xếp hạng qua Server.",
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
+                ForeColor = UITheme.TextMuted,
+                Location = new Point(0, 360),
+                Size = new Size(860, 28),
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false
+            };
+
+            centerPanel.Controls.Add(lblWelcome);
+            centerPanel.Controls.Add(lblGreet);
+            centerPanel.Controls.Add(cardsPanel);
+            centerPanel.Controls.Add(lblHint);
+
+            container.Controls.Add(centerPanel);
+
             container.Layout += (s, e) =>
             {
-                lblWelcome.Location = new Point((container.Width - lblWelcome.Width) / 2, 120);
-                lblGreet.Location   = new Point((container.Width - lblGreet.Width)   / 2, lblWelcome.Bottom + 16);
-                cardsPanel.Location = new Point((container.Width - cardsPanel.Width) / 2, lblGreet.Bottom + 50);
+                int x = Math.Max(0, (container.Width - centerPanel.Width) / 2);
+                int y = Math.Max(40, (container.Height - centerPanel.Height) / 2 - 15);
+
+                centerPanel.Location = new Point(x, y);
             };
 
             contentPanel.Controls.Add(container);
         }
-
         private Panel MakeInfoCard(string icon, string title, string subtitle)
         {
             var card = new Panel
             {
-                Size = new Size(170, 110),
+                Size = new Size(190, 130),
                 BackColor = UITheme.BgCard,
-                Margin = new Padding(10)
+                Margin = new Padding(0)
+            };
+
+            card.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                using var pen = new Pen(UITheme.Border, 1);
+                var rect = new Rectangle(0, 0, card.Width - 1, card.Height - 1);
+                e.Graphics.DrawRectangle(pen, rect);
             };
 
             var lblIcon = new Label
             {
                 Text = icon,
-                Font = new Font("Segoe UI", 24),
+                Font = new Font("Segoe UI", 24, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
-                Location = new Point(12, 12),
-                AutoSize = true
+                Location = new Point(18, 15),
+                Size = new Size(150, 42),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize = false
             };
 
             var lblTitle = new Label
             {
                 Text = title,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
                 ForeColor = UITheme.TextPrimary,
-                Location = new Point(12, 52),
-                AutoSize = true
+                Location = new Point(20, 66),
+                Size = new Size(150, 24),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize = false
             };
 
             var lblSub = new Label
             {
                 Text = subtitle,
-                Font = new Font("Segoe UI", 8),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Regular),
                 ForeColor = UITheme.TextSecondary,
-                Location = new Point(12, 74),
-                AutoSize = true
+                Location = new Point(20, 92),
+                Size = new Size(150, 22),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoSize = false
             };
 
-            card.Controls.AddRange(new Control[] { lblIcon, lblTitle, lblSub });
+            card.Controls.Add(lblIcon);
+            card.Controls.Add(lblTitle);
+            card.Controls.Add(lblSub);
+
             return card;
         }
-
         // ─────────────────────────────────────────────────────────
         // Matchmaking overlay
         // ─────────────────────────────────────────────────────────
@@ -320,7 +409,7 @@ namespace SudokuBattleOnline.Forms
 
             var lblTitle = new Label
             {
-                Text = "⚔  Tìm đối thủ",
+                Text = "Tìm đối thủ",
                 Font = new Font("Segoe UI", 14, FontStyle.Bold),
                 ForeColor = UITheme.Accent,
                 Location = new Point(24, 24),
@@ -329,7 +418,7 @@ namespace SudokuBattleOnline.Forms
 
             var lblStatus = new Label
             {
-                Text = "⏳  Đang tìm đối thủ phù hợp...",
+                Text = "Đang tìm đối thủ phù hợp...",
                 Font = new Font("Segoe UI", 10),
                 ForeColor = UITheme.TextSecondary,
                 Location = new Point(24, 68),
@@ -343,7 +432,7 @@ namespace SudokuBattleOnline.Forms
                 BackColor = UITheme.Border
             };
 
-            var btnCancel = UITheme.MakeDangerButton("✕  Hủy tìm trận", 352, 46);
+            var btnCancel = UITheme.MakeDangerButton("Hủy tìm trận", 352, 46);
             btnCancel.Location = new Point(24, 150);
 
             overlay.Controls.AddRange(new Control[] { lblTitle, lblStatus, sep, btnCancel });
@@ -404,8 +493,8 @@ namespace SudokuBattleOnline.Forms
 
             // Update user info
             lblUserInfo.Text = SudokuBattleOnline.Client.AppSession.IsLoggedIn
-                ? $"👤  {SudokuBattleOnline.Client.AppSession.CurrentUsername}"
-                : "👤  Chưa đăng nhập";
+                ? $"User: {SudokuBattleOnline.Client.AppSession.CurrentUsername}"
+                : "User: Chưa đăng nhập";
         }
     }
 }

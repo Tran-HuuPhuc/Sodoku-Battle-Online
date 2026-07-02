@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 using SudokuBattleOnline.Client;
 using SudokuBattleOnline.Shared.Packets;
@@ -9,164 +8,152 @@ namespace SudokuBattleOnline.Forms
 {
     public class BestScoreForm : Form
     {
-        private readonly ListView listView;
-        private readonly Label    lblStatus;
+        private readonly DataGridView dgv;
+        private readonly Label lblStatus;
 
         public BestScoreForm()
         {
-            // ── Form setup ──────────────────────────────
-            Text            = "Bảng Thành Tích Cá Nhân";
-            Size            = new Size(760, 520);
-            MinimumSize     = new Size(760, 520);
-            BackColor       = UITheme.BgMain;
-            ForeColor       = UITheme.TextPrimary;
-            StartPosition   = FormStartPosition.CenterParent;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox     = false;
+            Text = "Thành Tích Cá Nhân";
+            Size = new Size(900, 560);
+            MinimumSize = new Size(820, 520);
+            BackColor = UITheme.BgMain;
+            ForeColor = UITheme.TextPrimary;
+            StartPosition = FormStartPosition.CenterParent;
 
-            // ── Trophy icon + title ──────────────────────
-            var lblIcon = new Label
+            var header = new Panel
             {
-                Text      = "🏆",
-                Font      = new Font("Segoe UI Emoji", 28, FontStyle.Regular),
-                ForeColor = UITheme.Gold,
-                AutoSize  = true,
-                Location  = new Point(30, 18),
+                Dock = DockStyle.Top,
+                Height = 108,
+                BackColor = UITheme.BgMain
             };
 
             var lblTitle = new Label
             {
-                Text      = "Bảng Thành Tích Cá Nhân",
-                Font      = UITheme.FontTitle,
+                Text = "THÀNH TÍCH CÁ NHÂN",
+                Font = new Font("Segoe UI", 22, FontStyle.Bold),
                 ForeColor = UITheme.TextPrimary,
-                AutoSize  = true,
-                Location  = new Point(80, 22),
+                Location = new Point(28, 18),
+                Size = new Size(520, 40)
             };
 
-            // ── Separator ───────────────────────────────
-            var sep = UITheme.MakeSeparator(700);
-            sep.Location = new Point(30, 75);
-
-            // ── Status label ────────────────────────────
             lblStatus = new Label
             {
-                Text      = "⏳ Đang tải dữ liệu…",
-                Font      = UITheme.FontBody,
+                Text = "Đang tải dữ liệu thành tích...",
+                Font = UITheme.FontBody,
                 ForeColor = UITheme.TextSecondary,
-                AutoSize  = true,
-                Location  = new Point(30, 86),
+                Location = new Point(30, 66),
+                Size = new Size(760, 24)
             };
 
-            // ── ListView ────────────────────────────────
-            listView = new ListView
+            header.Controls.Add(lblTitle);
+            header.Controls.Add(lblStatus);
+
+            dgv = new DataGridView
             {
-                Location       = new Point(30, 116),
-                Size           = new Size(700, 330),
-                View           = View.Details,
-                FullRowSelect  = true,
-                GridLines      = false,
-                HeaderStyle    = ColumnHeaderStyle.Nonclickable,
-                OwnerDraw      = false,
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AllowUserToResizeRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowTemplate = { Height = 38 }
             };
-            UITheme.ApplyListViewTheme(listView);
+            UITheme.ApplyDgvTheme(dgv);
+            dgv.ColumnHeadersHeight = 42;
 
-            listView.Columns.Add("Rank",        70,  HorizontalAlignment.Center);
-            listView.Columns.Add("Username",    140, HorizontalAlignment.Left);
-            listView.Columns.Add("Difficulty",  110, HorizontalAlignment.Center);
-            listView.Columns.Add("Best Score",  110, HorizontalAlignment.Center);
-            listView.Columns.Add("Best Time",   110, HorizontalAlignment.Center);
-            listView.Columns.Add("Achieved At", 155, HorizontalAlignment.Left);
+            dgv.Columns.Add("Rank", "Hạng");
+            dgv.Columns.Add("Username", "Người chơi");
+            dgv.Columns.Add("Difficulty", "Độ khó");
+            dgv.Columns.Add("BestScore", "Điểm tốt nhất");
+            dgv.Columns.Add("BestTime", "Thời gian tốt nhất");
+            dgv.Columns.Add("AchievedAt", "Ngày đạt");
 
-            // ── Close button ────────────────────────────
-            var btnClose = UITheme.MakeOutlineButton("Đóng", 120, 38);
-            btnClose.Location = new Point(610, 460);
-            btnClose.Click += (s, e) => Close();
+            dgv.Columns["Rank"].FillWeight = 10;
+            dgv.Columns["Username"].FillWeight = 20;
+            dgv.Columns["Difficulty"].FillWeight = 15;
+            dgv.Columns["BestScore"].FillWeight = 17;
+            dgv.Columns["BestTime"].FillWeight = 18;
+            dgv.Columns["AchievedAt"].FillWeight = 24;
 
-            // ── Add controls ────────────────────────────
-            Controls.AddRange(new Control[]
-            {
-                lblIcon, lblTitle, sep,
-                lblStatus, listView,
-                btnClose,
-            });
+            dgv.CellFormatting += Dgv_CellFormatting;
 
+            Controls.Add(dgv);
+            Controls.Add(header);
             Load += BestScoreForm_Load;
         }
 
-        // ────────────────────────────────────────────────
-        //  Server call (preserved + medal coloring added)
-        // ────────────────────────────────────────────────
-        private async void BestScoreForm_Load(object sender, EventArgs e)
+        private void Dgv_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
         {
+            if (e.RowIndex < 0) return;
+            if (dgv.Columns[e.ColumnIndex].Name == "Rank" && e.Value != null)
+            {
+                string value = e.Value.ToString() ?? string.Empty;
+                if (value == "1") e.CellStyle.ForeColor = UITheme.Gold;
+                else if (value == "2") e.CellStyle.ForeColor = UITheme.Silver;
+                else if (value == "3") e.CellStyle.ForeColor = UITheme.Bronze;
+                e.CellStyle.Font = new Font("Segoe UI", 10, FontStyle.Bold);
+            }
+        }
+
+        private async void BestScoreForm_Load(object? sender, EventArgs e)
+        {
+            dgv.Rows.Clear();
             try
             {
                 var request = new BestScorePacket { PacketType = "BEST_SCORE_REQUEST" };
-
                 BestScorePacket? response =
                     await AppSession.SendAndWaitAsync<BestScorePacket>(request, "BEST_SCORE_RESULT");
 
-                listView.Items.Clear();
-
                 if (response == null)
                 {
-                    lblStatus.Text      = "⚠ Không nhận được phản hồi từ Server.";
+                    lblStatus.Text = "Không nhận được phản hồi từ Server.";
                     lblStatus.ForeColor = UITheme.Warning;
                     return;
                 }
 
                 if (!response.Success)
                 {
-                    lblStatus.Text      = "⚠ " + response.Message;
+                    lblStatus.Text = response.Message;
                     lblStatus.ForeColor = UITheme.Warning;
                     return;
                 }
 
                 if (response.Scores.Count == 0)
                 {
-                    lblStatus.Text      = "ℹ Chưa có dữ liệu Best Score.";
+                    lblStatus.Text = "Chưa có dữ liệu Best Score.";
                     lblStatus.ForeColor = UITheme.TextSecondary;
                     return;
                 }
 
-                lblStatus.Text      = $"✔ Tìm thấy {response.Scores.Count} kết quả.";
-                lblStatus.ForeColor = UITheme.Success;
-
                 foreach (var score in response.Scores)
                 {
-                    // Medal prefix for top-3
-                    string rankLabel = score.Rank switch
-                    {
-                        1 => "🥇 1",
-                        2 => "🥈 2",
-                        3 => "🥉 3",
-                        _ => score.Rank.ToString()
-                    };
-
-                    var item = new ListViewItem(rankLabel);
-                    item.SubItems.Add(score.Username);
-                    item.SubItems.Add(score.Difficulty);
-                    item.SubItems.Add(score.BestScore.ToString());
-                    item.SubItems.Add(score.BestTimeSeconds + "s");
-                    item.SubItems.Add(score.AchievedAt);
-
-                    // Medal row colors
-                    (item.BackColor, item.ForeColor) = score.Rank switch
-                    {
-                        1 => (Color.FromArgb(60, 52, 0),   UITheme.Gold),
-                        2 => (Color.FromArgb(40, 42, 48),  UITheme.Silver),
-                        3 => (Color.FromArgb(50, 32, 8),   UITheme.Bronze),
-                        _ => (UITheme.BgCard,              UITheme.TextPrimary)
-                    };
-                    item.UseItemStyleForSubItems = true;
-
-                    listView.Items.Add(item);
+                    dgv.Rows.Add(
+                        score.Rank,
+                        score.Username,
+                        score.Difficulty,
+                        score.BestScore,
+                        FormatTime(score.BestTimeSeconds),
+                        score.AchievedAt);
                 }
+
+                lblStatus.Text = $"Đã tải {response.Scores.Count} thành tích.";
+                lblStatus.ForeColor = UITheme.Success;
             }
             catch (Exception ex)
             {
-                lblStatus.Text      = "✖ Lỗi tải Best Score: " + ex.Message;
+                lblStatus.Text = "Lỗi tải Best Score: " + ex.Message;
                 lblStatus.ForeColor = UITheme.Danger;
             }
+        }
+
+        private static string FormatTime(int seconds)
+        {
+            if (seconds <= 0) return "-";
+            int m = seconds / 60;
+            int s = seconds % 60;
+            return $"{m:00}:{s:00}";
         }
     }
 }

@@ -1,9 +1,10 @@
-using Shared.Models;
+﻿using Shared.Models;
 
 namespace Server.GameManager
 {
     public class MultiplayerGameManager
     {
+        private const int MaxMistakes = 5;
         private readonly GameRoom _room;
         private int _emptyCellsCount = 40; // Số ô trống ban đầu để tính % tiến độ
 
@@ -117,14 +118,14 @@ namespace Server.GameManager
         /// Kiểm tra điều kiện kết thúc trận sau mỗi nước đi.
         /// Thứ tự ưu tiên:
         ///   1. Perfect Win – một bên đạt 100% → kết thúc ngay lập tức
-        ///   2. Max Mistakes – một bên chạm 10 lỗi → thua cuộc
+        ///   2. Max Mistakes – một bên chạm 5 lỗi → thua cuộc
         /// </summary>
         private void CheckAndFinishGame()
         {
             bool p1Perfect = _room.Player1.Score >= _emptyCellsCount;
             bool p2Perfect = _room.Player2.Score >= _emptyCellsCount;
-            bool p1MaxMistakes = _room.Player1.Mistakes >= 10;
-            bool p2MaxMistakes = _room.Player2.Mistakes >= 10;
+            bool p1MaxMistakes = _room.Player1.Mistakes >= MaxMistakes;
+            bool p2MaxMistakes = _room.Player2.Mistakes >= MaxMistakes;
 
             if (p1Perfect || p2Perfect || p1MaxMistakes || p2MaxMistakes)
             {
@@ -135,7 +136,7 @@ namespace Server.GameManager
         /// <summary>
         /// Phân định kết quả trận đấu theo thứ tự ưu tiên:
         ///   1. Perfect Win (100% hoàn thành bảng) → thắng tuyệt đối, không xét thêm
-        ///   2. Max Mistakes (10 lỗi) → thua ngay
+        ///   2. Max Mistakes (5 lỗi) → thua ngay
         ///   3. So sánh tiến trình % (Score) → ai cao hơn thắng
         ///   4. Nếu bằng % → ai ít lỗi hơn thắng
         ///   5. Nếu tất cả bằng → HÒA
@@ -162,14 +163,14 @@ namespace Server.GameManager
             }
             // Cả hai cùng Perfect (rất hiếm) → tiếp tục xét lỗi bên dưới
 
-            // ── Ưu tiên 2: Max Mistakes (10 lỗi) ───────────────────────────
-            if (_room.Player1.Mistakes >= 10 && _room.Player2.Mistakes < 10)
+            // ── Ưu tiên 2: Max Mistakes (5 lỗi) ───────────────────────────
+            if (_room.Player1.Mistakes >= MaxMistakes && _room.Player2.Mistakes < MaxMistakes)
             {
                 _room.Player1.IsWinner = false;
                 _room.Player2.IsWinner = true;
                 return;
             }
-            if (_room.Player2.Mistakes >= 10 && _room.Player1.Mistakes < 10)
+            if (_room.Player2.Mistakes >= MaxMistakes && _room.Player1.Mistakes < MaxMistakes)
             {
                 _room.Player1.IsWinner = true;
                 _room.Player2.IsWinner = false;

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -387,7 +387,13 @@ namespace SudokuBattle.Server.Network
                 room.IsGameStarted = false;
 
                 string winnerName = room.GameManager.GetWinnerName();
-                string reason = winnerName == "Draw" ? "Trận đấu hòa!" : $"Chúc mừng {winnerName} đã chiến thắng!";
+                string reason;
+                if (room.GameRoom.Player1.Mistakes >= 5 && winnerName == room.GameRoom.Player2.Username)
+                    reason = $"{room.GameRoom.Player1.Username} nhập sai 5 lần nên thua trận.";
+                else if (room.GameRoom.Player2.Mistakes >= 5 && winnerName == room.GameRoom.Player1.Username)
+                    reason = $"{room.GameRoom.Player2.Username} nhập sai 5 lần nên thua trận.";
+                else
+                    reason = winnerName == "Draw" ? "Trận đấu hòa!" : $"Chúc mừng {winnerName} đã chiến thắng!";
 
                 var gameOverPacket = new GameOverPacket
                 {
@@ -714,7 +720,7 @@ namespace SudokuBattle.Server.Network
             room.GameRoom = gameRoom;
             room.GameManager = mpGameManager;
 
-            await room.BroadcastAsync(new GameStartPacket
+            await player1.SendPacketAsync(new GameStartPacket
             {
                 RoomId = room.Id,
                 Board = flatBoard,

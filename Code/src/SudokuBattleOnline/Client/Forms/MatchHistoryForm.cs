@@ -1,4 +1,4 @@
-using SudokuBattleOnline.Client;
+﻿using SudokuBattleOnline.Client;
 using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Drawing;
@@ -15,8 +15,8 @@ namespace SudokuBattleOnline.Forms
         {
             // ── Form setup ──────────────────────────────
             Text            = "Lịch Sử Trận Đấu";
-            Size            = new Size(980, 500);
-            MinimumSize     = new Size(980, 500);
+            Size            = new Size(900, 520);
+            MinimumSize     = new Size(820, 500);
             BackColor       = UITheme.BgMain;
             ForeColor       = UITheme.TextPrimary;
             StartPosition   = FormStartPosition.CenterParent;
@@ -24,26 +24,17 @@ namespace SudokuBattleOnline.Forms
             MaximizeBox     = false;
 
             // ── Header ──────────────────────────────────
-            var lblIcon = new Label
-            {
-                Text      = "📋",
-                Font      = new Font("Segoe UI Emoji", 26, FontStyle.Regular),
-                ForeColor = UITheme.Accent,
-                AutoSize  = true,
-                Location  = new Point(28, 18),
-            };
-
             var lblTitle = new Label
             {
-                Text      = "Lịch Sử Trận Đấu",
+                Text      = "LỊCH SỬ TRẬN ĐẤU",
                 Font      = UITheme.FontTitle,
                 ForeColor = UITheme.TextPrimary,
                 AutoSize  = true,
-                Location  = new Point(74, 22),
+                Location  = new Point(28, 22),
             };
 
             // ── Separator ───────────────────────────────
-            var sep = UITheme.MakeSeparator(920);
+            var sep = UITheme.MakeSeparator(840);
             sep.Location = new Point(28, 70);
 
             // ── Status label ────────────────────────────
@@ -60,7 +51,7 @@ namespace SudokuBattleOnline.Forms
             dgv = new DataGridView
             {
                 Location               = new Point(28, 110),
-                Size                   = new Size(924, 330),
+                Size                   = new Size(840, 330),
                 ReadOnly               = true,
                 AllowUserToAddRows     = false,
                 AllowUserToDeleteRows  = false,
@@ -92,19 +83,19 @@ namespace SudokuBattleOnline.Forms
             dgv.CellFormatting += Dgv_CellFormatting;
 
             // ── Refresh button ──────────────────────────
-            var btnRefresh = UITheme.MakeButton("↻ Làm mới", 130, 38);
+            var btnRefresh = UITheme.MakeButton("Làm mới", 130, 38);
             btnRefresh.Location = new Point(28, 455);
             btnRefresh.Click += async (s, e) => await LoadHistoryFromServerAsync();
 
             // ── Close button ────────────────────────────
             var btnClose = UITheme.MakeOutlineButton("Đóng", 120, 38);
-            btnClose.Location = new Point(832, 455);
+            btnClose.Location = new Point(748, 455);
             btnClose.Click += (s, e) => Close();
 
             // ── Add controls ────────────────────────────
             Controls.AddRange(new Control[]
             {
-                lblIcon, lblTitle, sep,
+                lblTitle, sep,
                 lblStatus, dgv,
                 btnRefresh, btnClose,
             });
@@ -191,7 +182,7 @@ namespace SudokuBattleOnline.Forms
             }
             catch (Exception ex)
             {
-                dgv.Rows.Add("", "", "", "Không kết nối được Server: " + ex.Message, "", "", "");
+                dgv.Rows.Add("", "", "", "Lỗi Server: " + ex.Message, "", "", "");
                 lblStatus.Text      = "✖ Lỗi kết nối Server: " + ex.Message;
                 lblStatus.ForeColor = UITheme.Danger;
             }

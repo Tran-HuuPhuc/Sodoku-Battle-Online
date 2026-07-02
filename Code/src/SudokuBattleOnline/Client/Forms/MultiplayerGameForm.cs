@@ -1,4 +1,4 @@
-using SudokuBattleOnline.Client;
+﻿using SudokuBattleOnline.Client;
 using SudokuBattleOnline.Shared.Packets;
 using System;
 using System.Drawing;
@@ -230,7 +230,7 @@ namespace SudokuBattleOnline.Forms
 
             statsLabel = new Label
             {
-                Text = "Lỗi: 0/10",
+                Text = "Lỗi: 0/5",
                 Font = new Font("Segoe UI", 8),
                 ForeColor = Color.FromArgb(170, 180, 200),
                 Location = new Point(310, 4),
@@ -469,12 +469,12 @@ namespace SudokuBattleOnline.Forms
             pbOppProgress.Value = Math.Max(0, Math.Min(100, oppProgress));
             lblMyPct.Text  = $"{myProgress}%";
             lblOppPct.Text = $"{oppProgress}%";
-            lblMyStats.Text  = $"Lỗi: {myMistakes}/10";
-            lblOppStats.Text = $"Lỗi: {oppMistakes}/10";
+            lblMyStats.Text  = $"Lỗi: {myMistakes}/5";
+            lblOppStats.Text = $"Lỗi: {oppMistakes}/5";
 
             // Đổi màu số lỗi khi sắp cạn
-            lblMyStats.ForeColor  = myMistakes  >= 8 ? Color.OrangeRed : Color.FromArgb(170, 180, 200);
-            lblOppStats.ForeColor = oppMistakes >= 8 ? Color.OrangeRed : Color.FromArgb(170, 180, 200);
+            lblMyStats.ForeColor  = myMistakes  >= 4 ? Color.OrangeRed : Color.FromArgb(170, 180, 200);
+            lblOppStats.ForeColor = oppMistakes >= 4 ? Color.OrangeRed : Color.FromArgb(170, 180, 200);
         }
 
         private void HandleGameOver(string rawJson)
