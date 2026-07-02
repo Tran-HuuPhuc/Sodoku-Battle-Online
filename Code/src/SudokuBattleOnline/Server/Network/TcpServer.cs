@@ -63,9 +63,8 @@ namespace SudokuBattle.Server.Network
             _matchmakingQueue = new SudokuBattle.Server.Matchmaking.MatchmakingQueue();
             
             var roomManager = new RoomManager();
-            _matchmakingManager = new SudokuBattle.Server.Matchmaking.MatchmakingManager(_matchmakingQueue, roomManager);
-            
             _packetHandler = new PacketHandler(_sessionManager, _matchmakingQueue, roomManager);
+            _matchmakingManager = new SudokuBattle.Server.Matchmaking.MatchmakingManager(_matchmakingQueue, roomManager, _packetHandler);
             _packetRouter = new PacketRouter(_packetHandler);
         }
 
@@ -188,6 +187,11 @@ namespace SudokuBattle.Server.Network
                 {
                     _sessionManager.RemoveSession(sender);
                     _matchmakingQueue.Remove(sender);
+
+                    if (!string.IsNullOrEmpty(sender.CurrentRoomId))
+                    {
+                        _ = _packetHandler.HandlePlayerDisconnectForfeitAsync(sender);
+                    }
 
                     // Giảm bộ đếm IP khi ngắt kết nối
                     _ipConnectionCounts.AddOrUpdate(ipAddress, 0, (key, count) => Math.Max(0, count - 1));

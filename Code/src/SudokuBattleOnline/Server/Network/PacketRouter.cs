@@ -81,6 +81,16 @@ namespace SudokuBattle.Server.Network
                             await _handler.HandleLeaveRoomAsync(session, leaveRoomPacket);
                         break;
 
+                    case "START_GAME":
+                        await _handler.HandleStartGameAsync(session);
+                        break;
+
+                    case "TOGGLE_READY":
+                        var toggleReadyPacket = JsonSerializer.Deserialize<BasePacket>(jsonLine);
+                        if (toggleReadyPacket != null)
+                            await _handler.HandleToggleReadyAsync(session, toggleReadyPacket);
+                        break;
+
                     // ─── Trận đấu ───
                     case "FIND_MATCH":
                         var findMatchPacket = JsonSerializer.Deserialize<FindMatchPacket>(jsonLine);
@@ -93,6 +103,12 @@ namespace SudokuBattle.Server.Network
                         if (cellUpdatePacket != null)
                             await _handler.HandleCellUpdateAsync(session, cellUpdatePacket);
                         break;
+
+                    case "PLAYER_FORFEIT":
+                        // Người chơi chủ động bấm "Rời trận" → đối thủ thắng ngay
+                        await _handler.HandleVoluntaryForfeitAsync(session);
+                        break;
+
 
                     case "SAVE_MATCH_RESULT":
                         var saveMatchPacket = JsonSerializer.Deserialize<SaveMatchResultPacket>(jsonLine);
@@ -118,6 +134,18 @@ namespace SudokuBattle.Server.Network
                         var historyPacket = JsonSerializer.Deserialize<MatchHistoryPacket>(jsonLine);
                         if (historyPacket != null)
                             await _handler.HandleMatchHistoryAsync(session, historyPacket);
+                        break;
+
+                    case "GET_ROOMS":
+                        var getRoomsPacket = JsonSerializer.Deserialize<GetRoomsPacket>(jsonLine);
+                        if (getRoomsPacket != null)
+                            await _handler.HandleGetRoomsAsync(session, getRoomsPacket);
+                        break;
+
+                    case "BEST_SCORE_REQUEST":
+                        var bestScorePacket = JsonSerializer.Deserialize<BestScorePacket>(jsonLine);
+                        if (bestScorePacket != null)
+                            await _handler.HandleBestScoreRequestAsync(session, bestScorePacket);
                         break;
 
                     // ─── Heartbeat ───

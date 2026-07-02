@@ -21,6 +21,9 @@ namespace SudokuBattleOnline.Shared.Packets
         /// <summary>Tên đăng nhập đối thủ.</summary>
         public string OpponentUsername { get; set; } = string.Empty;
 
+        /// <summary>Tên đăng nhập của Player 1 (chủ phòng / người thứ nhất).</summary>
+        public string Player1Username { get; set; } = string.Empty;
+
         public GameStartPacket()
         {
             PacketType = "GAME_START";

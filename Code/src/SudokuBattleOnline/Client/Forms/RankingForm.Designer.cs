@@ -1,4 +1,5 @@
-﻿namespace SudokuBattleOnline.Forms
+using SudokuBattleOnline.Client;
+namespace SudokuBattleOnline.Forms
 {
     partial class RankingForm
     {

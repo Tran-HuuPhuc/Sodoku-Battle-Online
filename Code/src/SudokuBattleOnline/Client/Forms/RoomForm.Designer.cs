@@ -1,4 +1,5 @@
-﻿namespace SudokuBattleOnline.Client.Forms
+using SudokuBattleOnline.Client;
+namespace SudokuBattleOnline.Forms
 {
     partial class RoomForm
     {

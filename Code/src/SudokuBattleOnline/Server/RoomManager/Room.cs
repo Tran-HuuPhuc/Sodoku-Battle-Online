@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading.Tasks;
 using SudokuBattle.Server.Network;
 using SudokuBattleOnline.Shared.Packets;
+using Server.GameManager;
 
 namespace SudokuBattle.Server.Rooms
 {
@@ -14,9 +15,13 @@ namespace SudokuBattle.Server.Rooms
         public int MaxPlayers { get; set; } = 2; // Mặc định game Sudoku là 2 người đấu với nhau
         public bool IsGameStarted { get; set; } = false;
 
+        public GameRoom? GameRoom { get; set; }
+        public MultiplayerGameManager? GameManager { get; set; }
+
         // Lưu trữ danh sách kết nối thực tế của các Client trong phòng
         private readonly ConcurrentDictionary<string, ClientSession> _members = new();
         private readonly object _sync = new();
+        public Dictionary<string, bool> ReadyStates { get; } = new();
 
         // Trả về mảng danh sách người chơi hiện tại
         public ClientSession[] Members => _members.Values.ToArray();
@@ -46,6 +51,7 @@ namespace SudokuBattle.Server.Rooms
                 if (_members.TryAdd(session.SessionId, session))
                 {
                     session.CurrentRoomId = Id;
+                    ReadyStates[session.Username ?? session.SessionId] = false;
 
                     // Đăng ký event để tự remove khi disconnect
                     session.OnDisconnected += OnSessionDisconnected;
@@ -80,6 +86,8 @@ namespace SudokuBattle.Server.Rooms
                     if (_members.IsEmpty)
                         Host = null;
 
+                    ReadyStates.Remove(session.Username ?? session.SessionId);
+
                     Console.WriteLine($"[ROOM {Id}] {session} đã rời. Thành viên: {_members.Count}/{MaxPlayers}");
                     return (true, "Rời phòng thành công.");
                 }
@@ -88,16 +96,79 @@ namespace SudokuBattle.Server.Rooms
             }
         }
 
+        public (bool Success, string Message) RejoinMember(ClientSession newSession)
+        {
+            if (newSession == null) return (false, "Session is null.");
+            if (!newSession.IsConnected) return (false, "Kết nối không còn hoạt động.");
+            if (!newSession.IsAuthenticated) return (false, "Bạn chưa đăng nhập.");
+
+            lock (_sync)
+            {
+                if (GameRoom == null) return (false, "Không có trận đấu đang diễn ra.");
+                
+                string username = newSession.Username;
+                if (GameRoom.Player1.Username != username && GameRoom.Player2.Username != username)
+                {
+                    return (false, "Bạn không thuộc trận đấu này.");
+                }
+
+                // Loại bỏ phiên cũ nếu có cùng Username trong _members
+                var oldSession = _members.Values.FirstOrDefault(m => m.Username == username);
+                if (oldSession != null)
+                {
+                    _members.TryRemove(oldSession.SessionId, out _);
+                    oldSession.OnDisconnected -= OnSessionDisconnected;
+                    oldSession.CurrentRoomId = null;
+                }
+
+                // Thêm phiên mới
+                if (_members.TryAdd(newSession.SessionId, newSession))
+                {
+                    newSession.CurrentRoomId = Id;
+                    newSession.OnDisconnected += OnSessionDisconnected;
+                    ReadyStates[username] = true; // Luôn sẵn sàng khi đang trong trận
+
+                    if (Host == null || Host.Username == username)
+                    {
+                        Host = newSession;
+                    }
+
+                    Console.WriteLine($"[ROOM {Id}] {newSession.Username} đã kết nối lại.");
+                    return (true, "Kết nối lại thành công.");
+                }
+
+                return (false, "Không thể kết nối lại.");
+            }
+        }
+
         private void OnSessionDisconnected(ClientSession session)
         {
             try
             {
                 RemoveMember(session);
+                _ = BroadcastRoomUpdateOnDisconnectAsync();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ROOM {Id}] Lỗi khi xử lý disconnect: {ex.Message}");
             }
+        }
+
+        private async Task BroadcastRoomUpdateOnDisconnectAsync()
+        {
+            var players = Members.Select(m => m.Username ?? m.SessionId).ToList();
+            var host = Host?.Username ?? string.Empty;
+            var guest = Members.FirstOrDefault(m => m.SessionId != Host?.SessionId)?.Username ?? string.Empty;
+
+            var updatePacket = new RoomUpdatePacket
+            {
+                RoomId = Id,
+                HostUsername = host,
+                GuestUsername = guest,
+                Players = players
+            };
+
+            await BroadcastAsync(updatePacket);
         }
 
         // Gửi gói tin tới tất cả thành viên trong phòng
